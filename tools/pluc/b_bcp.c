@@ -146,7 +146,7 @@ bcn_type bcn_Open(b_bcp_type bc)
 
 int bcn_OpenCopy(b_bcp_type bc, bcn_type n)
 {
-  bcn_type nn;
+  //bcn_type nn;
   n->copy = bcn_Open(bc);
   if ( n->copy == NULL )
     return 0;
@@ -711,7 +711,9 @@ bcn_type bcm_FindEssential(bcm_type m, int v, int *no_solution)
   {
     current = N(n, v);
     if ( current != NULL )            /* is there a column? */
+    {
       if ( N(current, v) == NULL )    /* is there more than one? */
+      {
         if ( found == NULL )          /* nothing found yet... */
         {
           found = current;            /* store the essential row */
@@ -722,6 +724,8 @@ bcn_type bcm_FindEssential(bcm_type m, int v, int *no_solution)
             *no_solution = 1;
           return NULL;
         }
+      }
+    }
     n = N(n, nv);
   }
   return found;
@@ -758,7 +762,7 @@ int bcm_ReduceEssentialColumn(bcm_type m, bcs_type x, int *no_solution)
 /* as usual, the first element is not checked */
 int bcn_is_subset(bcn_type n, bcn_type o, int v)
 {
-  int pos;
+  //int pos;
   n = N(n, v);
   o = N(o, v);
   for(;;)
@@ -793,7 +797,7 @@ void bcm_ReduceRows(bcm_type m)
   bcn_type n;
   bcn_type o;
   bcn_type p;
-  int v = 1;
+  //int v = 1;
   
   n = N(m->ul,1);
   while( n != NULL )
@@ -850,7 +854,7 @@ static int check_col_dom_clause(int k_val, int j_val)
 /* assumes v = 1 */
 int bcn_is_col_dom(bcn_type n, bcn_type o, int v)
 {
-  int pos;
+  //int pos;
   int o_val;
   int n_val;
   n = N(n, v);
@@ -909,7 +913,7 @@ int bcm_ReduceCols(bcm_type m, bcs_type x)
   bcn_type n;
   bcn_type o;
   bcn_type p;
-  int v = 0;
+  //int v = 0;
   int xy;
 
 #ifdef BCM_LOG
@@ -1128,7 +1132,7 @@ int bcm_GetLowerBound(bcm_type m, bcs_type x)
   int *a_ptr;
   int a_cnt;
   int mis_cnt;
-  int i;
+  //int i;
   int cost;
   
   bcn_type n, o;

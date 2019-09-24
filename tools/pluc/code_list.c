@@ -614,7 +614,7 @@ int code_AssignCodeToPrimaryConstr(CONSTR_GRAPH cGraph, int primNode, int listLe
   int k;      /* number of bits for primConstr; */
   int level, kidLevel;  /* number of DC bits for primConstr */
   int cardConstr, kidCard; /* constraint cardinality */   
-  int nrStates;
+  //int nrStates;
   CODE_LIST tmp;
   KID_LIST kids, kids1;
   int *user_data;
@@ -637,7 +637,7 @@ int code_AssignCodeToPrimaryConstr(CONSTR_GRAPH cGraph, int primNode, int listLe
   user_data = (int*) malloc(sizeof(int));
   *user_data = 0;
   
-  nrStates = pinfoGetOutCnt(pConstr);
+  //nrStates = pinfoGetOutCnt(pConstr);
   
   dcInit(pConstr, &primConstr);
   dcInit(pCode, &code);

@@ -67,8 +67,8 @@ int xbm_IsHFInOutTransitionPossible(xbm_type x, int n1, int n2)
 {
   dclist cl;
   dcube *s1;
-  dcube *e1;
-  dcube *s2;
+  //dcube *e1;
+  //dcube *s2;
   dcube *e2;
   int l1, tr1, l2, tr2;
 
@@ -80,7 +80,7 @@ int xbm_IsHFInOutTransitionPossible(xbm_type x, int n1, int n2)
   while( xbm_LoopStOutTr(x, n1, &l1, &tr1 ) != 0 )
   {
     s1 = &(xbm_GetTr(x, tr1)->in_ddc_start_cond);
-    e1 = &(xbm_GetTr(x, tr1)->in_end_cond);
+    //e1 = &(xbm_GetTr(x, tr1)->in_end_cond);
     dclClear(cl);
     if ( dclAdd(xbm_GetPiIn(x), cl, xbm_GetTrSuper(x, tr1)) < 0 )
       return dclDestroy(cl), 0;
@@ -245,7 +245,7 @@ static int xbm_apply_ddc(xbm_type x)
 {
   int tr_pos;
   int i;
-  int s, e;
+  //int s, e;
   xbm_var_type var;
   
   for( i = 0; i < x->inputs; i++ )
@@ -637,6 +637,7 @@ static int xbm_update_prev(xbm_type x)
     0      -     directed dc up   
 */
 
+#ifdef OLD
 static int _old_xbm_apply_ddc(xbm_type x)
 {
   int tr_pos;
@@ -686,6 +687,7 @@ static int _old_xbm_apply_ddc(xbm_type x)
   
   return 1;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -765,7 +767,7 @@ static int xbm_check_in_out_transitions(xbm_type x)
   int l1, l2;
   int tr1_pos, tr2_pos;
   int is_ok = 1;
-  int i;
+  //int i;
   
   st_pos = -1;
   while( xbm_LoopSt(x, &st_pos) != 0 )
@@ -1130,6 +1132,7 @@ int xbm_AddOutputVar(xbm_type x, const char *name, int reset_value)
   return xbm_AddVar(x, XBM_DIRECTION_OUT, name, reset_value);
 }
 
+/*
 static int xbm_get_input_cube_pos(xbm_type x, const char *name)
 {
   int pos;
@@ -1138,7 +1141,9 @@ static int xbm_get_input_cube_pos(xbm_type x, const char *name)
     return -1;
   return xbm_GetVar(x, pos)->index;
 }
+*/
 
+/*
 static int xbm_get_output_cube_pos(xbm_type x, const char *name)
 {
   int pos;
@@ -1147,6 +1152,7 @@ static int xbm_get_output_cube_pos(xbm_type x, const char *name)
     return -1;
   return xbm_GetVar(x, pos)->index;
 }
+*/
 
 static int xbm_cmp(xbm_type x, char **s, char *key)
 {

@@ -154,7 +154,9 @@ char *b_ff(const char *name, const char *default_name, const char *default_ext)
 char *b_get_ff_searchpath(void)
 {
   size_t len = 2;
+#ifdef PACKAGE
   char *home = getenv("HOME");
+#endif /* PACKAGE */
   char *s;
 #ifdef DATA_DIR
   len += strlen(DATA_DIR)+1;

@@ -184,17 +184,21 @@ int mcovReducePartialRedundantList(mcov mc, dclist cl_pr, dcube *flags)
   return 1;
 }
 
+/*
 static void mcovPushCurr(mcov mc, int pos)
 {
   dcSetOut(&(mc->select_curr), pos, 1);
   mc->cost_curr += dclGet(mc->cl_pr, pos)->n;
 }
+*/
 
+/*
 static void mcovPopCurr(mcov mc, int pos)
 {
   dcSetOut(&(mc->select_curr), pos, 0);
   mc->cost_curr -= dclGet(mc->cl_pr, pos)->n;
 }
+*/
 
 void mcovCopyCurrToOpt(mcov mc)
 {

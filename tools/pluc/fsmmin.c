@@ -33,9 +33,9 @@
 #include "b_il.h"
 #include "fsm.h"
 
+/*
 static int dcl_is_fbo_compatible(pinfo *pi, dclist c1, dclist c2)
 {
-  dclist a, b, c;
   int i, cnt;
   
   if ( dclPrimes(pi, c1) == 0 )
@@ -61,6 +61,7 @@ static int dcl_is_fbo_compatible(pinfo *pi, dclist c1, dclist c2)
   
   return 0;
 }
+*/
 
 static int dcl_is_mealy_output_compatible(pinfo *pi, dclist c1, dclist c2)
 {
@@ -321,6 +322,7 @@ void hm_ShowCompatibleSets(hm_type hm)
   }
 }
 
+/*
 static int fsm_GetAllInEdgeOutput(fsm_type fsm, int n, dclist cl)
 {
   int loop, in_n;
@@ -345,7 +347,9 @@ static int fsm_GetAllInEdgeOutput(fsm_type fsm, int n, dclist cl)
 
   return 1;
 }
+*/
 
+/*
 static int fsm_IsFBOCompatible(fsm_type fsm, int n1, int n2)
 {
   dclist c1, c2;
@@ -379,6 +383,7 @@ static int fsm_IsFBOCompatible(fsm_type fsm, int n1, int n2)
 
   return dclDestroyVA(2, c1, c2), 0;
 }
+*/
 
 static int fsm_IsCompatible(fsm_type fsm, int n1, int n2, int is_fbo)
 {
@@ -387,7 +392,7 @@ static int fsm_IsCompatible(fsm_type fsm, int n1, int n2, int is_fbo)
   int l1, l2;
   int e1, e2;
   int dn1, dn2;
-  int g1, g2;
+  //int g1, g2;
   
   if ( n1 == n2 )
     return 0;
@@ -452,8 +457,8 @@ static int fsm_IsCompatible(fsm_type fsm, int n1, int n2, int is_fbo)
       {
         dn1 = fsm_GetEdgeDestNode(fsm, e1);
         dn2 = fsm_GetEdgeDestNode(fsm, e2);
-        g1 = fsm_GetNodeGroupIndex(fsm, dn1);
-        g2 = fsm_GetNodeGroupIndex(fsm, dn2);
+        //g1 = fsm_GetNodeGroupIndex(fsm, dn1);
+        //g2 = fsm_GetNodeGroupIndex(fsm, dn2);
         /* if ( g1 < 0 || g2 < 0 || g1 != g2 ) */
           if ( dn1 != dn2 )
           {

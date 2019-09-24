@@ -106,10 +106,11 @@ int encode_IC_All( fsm_type fsm )
   
   INDEX_TABLE tab;
   
-  int nrPrimConstr, OK, nrBits, rotate, minBits, nrConstr;
+  int nrPrimConstr, OK, nrBits, rotate, minBits;
+  //int nrConstr;
   CODE_LIST_VECTOR codeList;
   pinfo pCode, pConstr;
-  pinfo *pCond = fsm_GetConditionPINFO(fsm);
+  //pinfo *pCond = fsm_GetConditionPINFO(fsm);
   
   KID_LIST bad;
   
@@ -119,7 +120,7 @@ int encode_IC_All( fsm_type fsm )
   
   pinfoInit(&pConstr);
   constrList = (MIN_SYMB_LIST) min_BuildGroups(fsm,tab, &pConstr, "IC_INCLUDE");
-  nrConstr = min_GetCnt(constrList);
+  //nrConstr = min_GetCnt(constrList);
  
   icList = (IC_LIST) ic_CreateICList(constrList,  &pConstr);
   icList = (IC_LIST) ic_CreateICClosure(icList, &pConstr);

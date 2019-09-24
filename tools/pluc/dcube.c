@@ -35,7 +35,6 @@
 #include "dcube.h"
 #include "mcov.h"
 #include "mwc.h"
-#include "matrix.h"
 
 /*-- dcInSetAll -------------------------------------------------------------*/
 void dcInSetAll(pinfo *pi, dcube *c, c_int v)
@@ -2246,7 +2245,7 @@ int dclReadCNFFP(pinfo *pi, dclist cl, FILE *fp)
   dcube *c = &(pi->tmp[3]);
   char *t;
   int is_init = 0;
-  int cnt = -1; 
+  //int cnt = -1; 
   int pos;
   
   pinfoSetOutCnt(pi, 1);
@@ -2272,7 +2271,7 @@ int dclReadCNFFP(pinfo *pi, dclist cl, FILE *fp)
       while(*t <= ' ' && *t > 0)
         t++;
       pinfoSetInCnt(pi, atoi(t));
-      cnt = atoi(t);
+      //cnt = atoi(t);
       is_init = 1;
       dcInSetAll(pi, c, CUBE_IN_MASK_DC);
       dcOutSetAll(pi, c, 0);
@@ -4456,7 +4455,7 @@ int dclComplementCof(pinfo *pi, dclist cl, dcube *cof, int depth)
   dclist cl_left, cl_right, cl_c;
   dcube *cof_left = &(pi->stack1[depth]);
   dcube *cof_right = &(pi->stack2[depth]);
-  int left_cnt, right_cnt;
+  //int left_cnt, right_cnt;
 
   if (depth >= PINFO_STACK_CUBES)
     return 0;
@@ -4515,8 +4514,8 @@ int dclComplementCof(pinfo *pi, dclist cl, dcube *cof, int depth)
     return dclDestroyVA(3, cl_left, cl_right, cl_c), 0;
   if ( dclSCCCofactor(pi, cl_right, cl, cof_right) == 0 )
     return dclDestroyVA(3, cl_left, cl_right, cl_c), 0;
-  left_cnt = dclCnt(cl_left);
-  right_cnt = dclCnt(cl_right);
+  //left_cnt = dclCnt(cl_left);
+  //right_cnt = dclCnt(cl_right);
   
   pinfoBTreeStart(pi);
   
@@ -4618,7 +4617,7 @@ int dclPrimesCof(pinfo *pi, dclist cl, dcube *cof, int depth)
   dclist cl_left, cl_right;
   dcube *cof_left = &(pi->stack1[depth]);
   dcube *cof_right = &(pi->stack2[depth]);
-  int left_cnt, right_cnt; 
+  //int left_cnt, right_cnt; 
 
   if (depth >= PINFO_STACK_CUBES)
     return 0;
@@ -4636,8 +4635,8 @@ int dclPrimesCof(pinfo *pi, dclist cl, dcube *cof, int depth)
     return dclDestroyCachedVA(pi, 2, cl_left, cl_right), 0;
   if ( dclSCCCofactor(pi, cl_right, cl, cof_right) == 0 )
     return dclDestroyCachedVA(pi, 2, cl_left, cl_right), 0;
-  left_cnt = dclCnt(cl_left);
-  right_cnt = dclCnt(cl_right);
+  //left_cnt = dclCnt(cl_left);
+  //right_cnt = dclCnt(cl_right);
   pinfoBTreeStart(pi);
   if ( dclPrimesCof(pi, cl_left, cof_left, depth+1) == 0 )
     return pinfoBTreeEnd(pi), dclDestroyCachedVA(pi, 2, cl_left, cl_right), 0;
@@ -4839,7 +4838,7 @@ int dclPrimesInvCof(pinfo *pi, dclist cl, dcube *cof, int depth)
   dclist cl_left, cl_right;
   dcube *cof_left = &(pi->stack1[depth]);
   dcube *cof_right = &(pi->stack2[depth]);
-  int left_cnt, right_cnt;
+  //int left_cnt, right_cnt;
 
   if (depth >= PINFO_STACK_CUBES)
     return 0;
@@ -4873,8 +4872,8 @@ int dclPrimesInvCof(pinfo *pi, dclist cl, dcube *cof, int depth)
   if ( dclSCCInvCofactor(pi, cl_right, cl, cof_right) == 0 )
     return dclDestroyCachedVA(pi, 2, cl_left, cl_right), 0;
 
-  left_cnt = dclCnt(cl_left);
-  right_cnt = dclCnt(cl_right);
+  //left_cnt = dclCnt(cl_left);
+  //right_cnt = dclCnt(cl_right);
   pinfoBTreeStart(pi);
   if ( dclPrimesInvCof(pi, cl_left, cof_left, depth+1) == 0 )
     return pinfoBTreeEnd(pi), dclDestroyCachedVA(pi, 2, cl_left, cl_right), 0;
@@ -5846,11 +5845,12 @@ int dclMinimizeDC(pinfo *pi, dclist cl, dclist cl_dc, int greedy, int is_literal
     return dclDestroyVA(4, cl_es, cl_fr, cl_pr, cl_on), 0;
   
 /* ---- dclIrredundantGreedy has been disabled for the benefit of (the following function) maMatrixIrredundant:
-
+  reactivated for pluc
+  */
   if ( dclIrredundantGreedy(pi, cl_es, cl_pr, cl_dc, NULL) == 0 )
     return dclDestroyVA(4, cl_es, cl_fr, cl_pr, cl_on), 0;                   
-*/
 
+  /* removed for pluc
   if ( is_literal != 0 )
   {
     if ( maMatrixIrredundant(pi, cl_es, cl_pr, cl_dc, NULL, greedy, MA_LIT_SOP) == 0 )
@@ -5861,6 +5861,7 @@ int dclMinimizeDC(pinfo *pi, dclist cl, dclist cl_dc, int greedy, int is_literal
     if ( maMatrixIrredundant(pi, cl_es, cl_pr, cl_dc, NULL, greedy, MA_LIT_NONE) == 0 )
       return dclDestroyVA(4, cl_es, cl_fr, cl_pr, cl_on), 0;
   }
+  */
 
   if ( dclJoin(pi, cl_pr, cl_es) == 0 )
     return dclDestroyVA(4, cl_es, cl_fr, cl_pr, cl_on), 0;

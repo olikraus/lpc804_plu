@@ -1,4 +1,8 @@
 
 
-fixed several includes
-matrix.c removed and replaced by the previous greedy algorithm
+Initial commit can be used to update olikraus/dgc repo.
+It just fixes several missing includes
+- fixed several includes
+
+Additional delta is the removal of matrix.[hc]: It got replaced by the previous 
+greedy algorithm. Anyways the minimization is not used.

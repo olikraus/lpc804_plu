@@ -103,10 +103,10 @@ static int fsm_IsOutputCompatible(fsm_type fsm, int n1, int n2)
 {
   dclist c1, c2;
   pinfo *pi;
-  int l1, l2;
-  int e1, e2;
-  int dn1, dn2;
-  int g1, g2;
+  //int l1, l2;
+  //int e1, e2;
+  //int dn1, dn2;
+  //int g1, g2;
 
   assert(fsm != NULL);
   
@@ -151,9 +151,9 @@ static int xbm_IsOutputCompatible(xbm_type x, int n1, int n2)
 
 static int xbm_IsNotCompatible(xbm_type x, int n1, int n2)
 {
-  dcube *c1;
-  dcube *c2;
-  int l1, l2, t1, t2;
+  //dcube *c1;
+  //dcube *c2;
+  //int l1, l2, t1, t2;
   
   if ( xbm_IsOutputCompatible(x, n1, n2) == 0 )
     return 1;
@@ -194,7 +194,7 @@ static int fsm_IsUncoditionalCompatible(fsm_type fsm, int n1, int n2)
   int l1, l2;
   int e1, e2;
   int dn1, dn2;
-  int g1, g2;
+  //int g1, g2;
   
   assert(fsm != NULL);
   
@@ -236,8 +236,8 @@ static int fsm_IsUncoditionalCompatible(fsm_type fsm, int n1, int n2)
       {
         dn1 = fsm_GetEdgeDestNode(fsm, e1);
         dn2 = fsm_GetEdgeDestNode(fsm, e2);
-        g1 = fsm_GetNodeGroupIndex(fsm, dn1);
-        g2 = fsm_GetNodeGroupIndex(fsm, dn2);
+        //g1 = fsm_GetNodeGroupIndex(fsm, dn1);
+        //g2 = fsm_GetNodeGroupIndex(fsm, dn2);
         /* if ( g1 < 0 || g2 < 0 || g1 != g2 ) */
           if ( dn1 != dn2 )
           {
@@ -260,7 +260,7 @@ static int xbm_IsUncoditionalCompatible(xbm_type x, int n1, int n2)
   dcube *c1;
   dcube *c2;
   int l1, l2, t1, t2;
-  int i, cnt;
+  //int i, cnt;
 
   /* not compatible, if there are some conflicts ... */
   if ( x->is_sync == 0 )
@@ -952,93 +952,6 @@ static int mis_ApplyXBMOutOutConditions(mis_type m, int state1, int state2)
   
 }
 
-/* check out-out transitions */
-/* see also xbm_IsHFInOutTransitionPossible() */
-/* NOT USED AT THE MOMENT */
-static int mis_ApplyXBMInOutConditions(mis_type m, int state1, int state2)
-{
-  xbm_type x = m->xbm;
-  int n1 = mis_ToN(m, state1);
-  int n2 = mis_ToN(m, state2);
-  
-  dclist cl;
-  dcube *s1;
-  dcube *e1;
-  dcube *s2;
-  dcube *e2;
-  int l1, tr1, l2, tr2;
-
-  if ( dclInit(&cl) == 0 )
-    return 0;
-    
-  l1 = -1;
-  tr1 = -1;
-  while( xbm_LoopStOutTr(x, n1, &l1, &tr1 ) != 0 )
-  {
-    s1 = &(xbm_GetTr(x, tr1)->in_ddc_start_cond);
-    e1 = &(xbm_GetTr(x, tr1)->in_end_cond);
-    dclClear(cl);
-    if ( dclAdd(xbm_GetPiIn(x), cl, xbm_GetTrSuper(x, tr1)) < 0 )
-      return dclDestroy(cl), 0;
-      
-    if ( dclSubtractCube(xbm_GetPiIn(x), cl, s1) == 0 )
-      return dclDestroy(cl), 0;
-    /* FIXME
-    if ( dclSubtractCube(xbm_GetPiIn(x), cl, e1) == 0 )
-      return dclDestroy(cl), 0;
-    */
-
-    l2 = -1;
-    tr2 = -1;
-    while( xbm_LoopStInTr(x, n2, &l2, &tr2 ) != 0 )
-    {
-      e2 = &(xbm_GetTr(x, tr2)->in_end_cond);
-      xbm_Log(x, 0, "XBM mis: %s/%s t/e  %s -> %s: %s    %s -> %s: %s.",
-            xbm_GetStNameStr(x, n1),
-            xbm_GetStNameStr(x, n2),
-            xbm_GetStNameStr(x, xbm_GetTrSrcStPos(x, tr1)),
-            xbm_GetStNameStr(x, xbm_GetTrDestStPos(x, tr1)),
-            dcToStr(xbm_GetPiIn(x), xbm_GetTrSuper(x, tr1), "", ""),
-            xbm_GetStNameStr(x, xbm_GetTrSrcStPos(x, tr2)),
-            xbm_GetStNameStr(x, xbm_GetTrDestStPos(x, tr2)),
-            dcToStr2(xbm_GetPiIn(x), e2, "", "")
-          );
-      /* dclShow(xbm_GetPiIn(x), cl); */
-      if ( dclIsIntersectionCube(xbm_GetPiIn(x), cl, e2) != 0 )
-      {
-        /* called from mis.c */
-        xbm_Log(x, 1, "XBM mis: States '%s' and '%s' are not compatible: Conflict between %s -> %s and %s -> %s.",
-          xbm_GetStNameStr(x, n1),
-          xbm_GetStNameStr(x, n2),
-          xbm_GetStNameStr(x, xbm_GetTrSrcStPos(x, tr1)),
-          xbm_GetStNameStr(x, xbm_GetTrDestStPos(x, tr1)),
-          xbm_GetStNameStr(x, xbm_GetTrSrcStPos(x, tr2)),
-          xbm_GetStNameStr(x, xbm_GetTrDestStPos(x, tr2))
-          );
-        if ( mis_AddCondition(m, 
-            mis_ToS(m, xbm_GetTrDestStPos(x, tr1)), 
-            mis_ToS(m, xbm_GetTrSrcStPos(x, tr2)), 
-            mis_ToS(m, xbm_GetTrSrcStPos(x, tr1)), 
-            mis_ToS(m, xbm_GetTrDestStPos(x, tr2))) == 0 )
-          return dclDestroy(cl), 0;
-        if ( mis_AddCondition(m, 
-            mis_ToS(m, xbm_GetTrDestStPos(x, tr1)), 
-            mis_ToS(m, xbm_GetTrSrcStPos(x, tr2)), 
-            mis_ToS(m, xbm_GetTrDestStPos(x, tr1)), 
-            mis_ToS(m, xbm_GetTrDestStPos(x, tr2))) == 0 )
-          return dclDestroy(cl), 0;
-        if ( mis_AddCondition(m, 
-            mis_ToS(m, xbm_GetTrDestStPos(x, tr1)), 
-            mis_ToS(m, xbm_GetTrSrcStPos(x, tr2)), 
-            mis_ToS(m, xbm_GetTrSrcStPos(x, tr1)), 
-            mis_ToS(m, xbm_GetTrSrcStPos(x, tr2))) == 0 )
-          return dclDestroy(cl), 0;
-      }
-    }
-  }
-
-  return dclDestroy(cl), 1;
-}
 
 int mis_MarkConditionalCompatible(mis_type m)
 {

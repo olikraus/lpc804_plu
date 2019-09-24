@@ -406,9 +406,9 @@ CONSTR_GRAPH cg_ReadaptGraph(CONSTR_GRAPH cGraph, KID_LIST bad, pinfo *pConstr)
 CONSTR_GRAPH cg_ChangeOrderOfPrimConstr(CONSTR_GRAPH cGraph, pinfo *pConstr)
 {
   KID_LIST tmp, aux;
-  int c1;
+  //int c1;
   
-  c1 = cGraph->nodes[0]->kids->id;
+  //c1 = cGraph->nodes[0]->kids->id;
   
   for(tmp = cGraph->nodes[0]->kids; tmp->next != NULL ; tmp = tmp->next);
   
