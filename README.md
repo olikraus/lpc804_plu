@@ -3,13 +3,20 @@
 This repo contains:
  * Toolchain for the NXP LPC804 Microcontroller
  * Synthesis tool for the Programmable Logic Unit (PLU Compiler)
- * UART Upload tool
+ * UART hex file upload tool (hex2lpc8xx)
  * LPC804 examples, including PLU examples
- 
+
+
+## tool-chain gcc
+
+This project requires the arm gcc crosscompiler. It is available here:
+
+https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm
+
 
 ## pluc
 
-"pluc" is the PLU Compiler tool, developed for this project. 
+"pluc" is the PLU Compiler tool, developed as part of this project. 
 It is derived from my older project DGC and is based as much as possible 
 on the DGC sources.
 
@@ -28,4 +35,10 @@ input.
  - Algorithms inside pluc (dgc) and NXP "PLU configuration tool" (SIS) are both based on the research happend between 1980 and 1990.
  - A good summary of the technical background for pluc is here: https://www2.eecs.berkeley.edu/Pubs/TechRpts/1986/734.html
  
+## hex2lpc8xx
+
+ - Upload tool for LPC8xx hex files (intel hex format)
+ - UART upload interface
+ - NXP LPC checksum calculation
+ - Autostart feature
  
