@@ -21,5 +21,8 @@ input.
  
 "pluc" vs NXP "PLU configuration tool":
  - pluc is just a commandline tool, it reads a specification and writes C code
- - pluc basically does not require any knowledge of the PLU details, just specify the problem. "pluc" will generate an error if it does not fit into the PLU.
+ - pluc basically does not require any knowledge of the PLU details, just specify the problem. "pluc" will generate an error if the result does not fit into the PLU.
  - pluc is available for linux and windows
+ - pluc does not support high level languages like VHDL or Verilog. However the asumption is, that PLA, BEX, KISS or BMS formats are powerful enough to describe problems for the LPC804 PLU.
+ - pluc does not contain a graphical user interface or schematic editor
+ 
