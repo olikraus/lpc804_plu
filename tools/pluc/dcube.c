@@ -34,6 +34,7 @@
 #include "b_ff.h"
 #include "dcube.h"
 #include "mcov.h"
+#include "matrix.h"
 #include "mwc.h"
 
 /*-- dcInSetAll -------------------------------------------------------------*/
@@ -5845,12 +5846,10 @@ int dclMinimizeDC(pinfo *pi, dclist cl, dclist cl_dc, int greedy, int is_literal
     return dclDestroyVA(4, cl_es, cl_fr, cl_pr, cl_on), 0;
   
 /* ---- dclIrredundantGreedy has been disabled for the benefit of (the following function) maMatrixIrredundant:
-  reactivated for pluc
-  */
   if ( dclIrredundantGreedy(pi, cl_es, cl_pr, cl_dc, NULL) == 0 )
     return dclDestroyVA(4, cl_es, cl_fr, cl_pr, cl_on), 0;                   
+*/
 
-  /* removed for pluc
   if ( is_literal != 0 )
   {
     if ( maMatrixIrredundant(pi, cl_es, cl_pr, cl_dc, NULL, greedy, MA_LIT_SOP) == 0 )
@@ -5861,7 +5860,6 @@ int dclMinimizeDC(pinfo *pi, dclist cl, dclist cl_dc, int greedy, int is_literal
     if ( maMatrixIrredundant(pi, cl_es, cl_pr, cl_dc, NULL, greedy, MA_LIT_NONE) == 0 )
       return dclDestroyVA(4, cl_es, cl_fr, cl_pr, cl_on), 0;
   }
-  */
 
   if ( dclJoin(pi, cl_pr, cl_es) == 0 )
     return dclDestroyVA(4, cl_es, cl_fr, cl_pr, cl_on), 0;
