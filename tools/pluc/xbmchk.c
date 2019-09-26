@@ -34,7 +34,7 @@ int xbm_CheckStrongStateStateTransfers(xbm_type x)
   dcube *s = &(xbm_GetPiMachine(x)->tmp[3]);
   dcube *e = &(xbm_GetPiMachine(x)->tmp[4]);
   int in_cnt = x->inputs;
-  int out_cnt = x->outputs;
+  //int out_cnt = x->outputs;
   int code_cnt = xbm_GetPiCode(x)->out_cnt;
   int st_src_pos, st_dest_pos;
   
@@ -135,7 +135,7 @@ int xbm_CheckStrongStateSelfTransfers(xbm_type x)
   dcube *s = &(xbm_GetPiMachine(x)->tmp[3]);
   dcube *e = &(xbm_GetPiMachine(x)->tmp[4]);
   int in_cnt = x->inputs;
-  int out_cnt = x->outputs;
+  //int out_cnt = x->outputs;
   int code_cnt = xbm_GetPiCode(x)->out_cnt;
   
   st_pos = -1;

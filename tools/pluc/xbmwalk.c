@@ -101,7 +101,7 @@ static int xbm_GetTrVisitMax(xbm_type x, int tr_pos)
   int i;
   int visit_max = 1;
   dcube *s = &(xbm_GetTr(x, tr_pos)->in_start_cond);
-  dcube *e = &(xbm_GetTr(x, tr_pos)->in_end_cond);
+  //dcube *e = &(xbm_GetTr(x, tr_pos)->in_end_cond);
 
   if ( x->is_all_dc_change != 0 )
     return visit_max;
@@ -125,7 +125,7 @@ int xbm_GetNthTrVec(xbm_type x, int tr_pos, dcube *cs, dcube *ct, int n)
   dcube *e = &(xbm_GetTr(x, tr_pos)->in_end_cond);
   dcube *dc = &(xbm_GetTr(x, tr_pos)->in_ddc_start_cond);
   int in_cnt = x->inputs;
-  int out_cnt = x->outputs;
+  //int out_cnt = x->outputs;
   int code_cnt = xbm_GetPiCode(x)->out_cnt;
   int st_src_pos = xbm_GetTrSrcStPos(x, tr_pos);
   int st_dest_pos = xbm_GetTrDestStPos(x, tr_pos);

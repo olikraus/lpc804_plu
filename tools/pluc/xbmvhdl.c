@@ -224,7 +224,7 @@ static int xbm_vhdltb_arch_end(xbm_type x, FILE *fp)
 static int xbm_vhdltb_arch_component(xbm_type x, FILE *fp, int is_clr, int is_clk)
 {
   int r = 0;
-  int i, j;
+  int i;
   b_sl_type in_sl;
   b_sl_type out_sl;
 

@@ -175,12 +175,12 @@ int xbm_DoStateStateTransfers(xbm_type x, int (*fn)(void *data, dcube *s, dcube 
   dcube *ds = &(xbm_GetPiMachine(x)->tmp[11]);
   dcube *de = &(xbm_GetPiMachine(x)->tmp[14]);
   dcube *end;
-  dclist in_self_cl;
+  //dclist in_self_cl;
   int in_cnt = x->inputs;
-  int out_cnt = x->outputs;
+  //int out_cnt = x->outputs;
   int code_cnt = xbm_GetPiCode(x)->out_cnt;
   int st_src_pos, st_dest_pos;
-  int i;
+  //int i;
   
   assert(in_cnt == xbm_GetPiIn(x)->in_cnt);
   
@@ -292,10 +292,10 @@ int xbm_DoStateSelfTransfers(xbm_type x, int (*fn)(void *data, dcube *s, dcube *
   int l1, l2;
   dcube *s = &(xbm_GetPiMachine(x)->tmp[3]);
   dcube *e = &(xbm_GetPiMachine(x)->tmp[4]);
-  dcube *cnt = &(xbm_GetPiMachine(x)->tmp[11]);
-  dcube *mask = &(xbm_GetPiMachine(x)->tmp[14]);
+  //dcube *cnt = &(xbm_GetPiMachine(x)->tmp[11]);
+  //dcube *mask = &(xbm_GetPiMachine(x)->tmp[14]);
   int in_cnt = x->inputs;
-  int out_cnt = x->outputs;
+  //int out_cnt = x->outputs;
   int code_cnt = xbm_GetPiCode(x)->out_cnt;
   
   st_pos = -1;
@@ -430,7 +430,7 @@ int xbm_build_sync_on_off_set(xbm_type x, dclist cl_on, dclist cl_off)
   int tr_pos;
   int st_pos;
   int in_cnt = x->inputs;
-  int out_cnt = x->outputs;
+  //int out_cnt = x->outputs;
   int code_cnt = xbm_GetPiCode(x)->out_cnt;
   int i, cnt;
   

@@ -1906,8 +1906,10 @@ void maMatrixLinkCol (ma_ptr2matrix sparse, int h_colno, ma_ptr2col h_colptr)
         }                                                                                                 
         else                                                                                              
           /* Fall 5.) Die spezifizierte Spalte exisitert bereits (dann war die Erheohung des Matrix-Counters unzulaessig)... */
+	{  // 2019 ok: added { here to make the compiler happy. This { and the corresponding } was not here before
           sparse->col_cnt--; 
-          h_colptr = lo_colptr;                                                                                   
+	}
+          h_colptr = lo_colptr;     // 2019 ok: this line looks strange. It is (a) useless and (b) indent is wrong... what todo???
       }                                                                                                   
     }
   }
@@ -1983,8 +1985,10 @@ void maMatrixLinkRow (ma_ptr2matrix sparse, int h_rowno, ma_ptr2row h_rowptr)
         }                                                                                                 
         else                                                                                              
           /* Fall 5.) Die spezifizierte Zeile exisitert bereits (dann war die Erheohung des Matrix-Counters unzulaessig)... */
+	{  // 2019 ok: added { here to make the compiler happy. This { and the corresponding } was not here before
           sparse->row_cnt--; 
-          h_rowptr = lo_rowptr;                                                                                   
+	}
+          h_rowptr = lo_rowptr;                            // 2019 ok: this line looks strange. It is (a) useless and (b) indent is wrong... what todo???
       }                                                                                                   
     }
   }
@@ -2503,7 +2507,7 @@ int maMatrixSelectCol (ma_ptr2matrix sparse, int *weight, ma_ptr2solution soluti
   double c_temp, c_weight = -1;
   ma_ptr2col f_col;
   ma_ptr2row f_row, indep_cols;
-  ma_ptr2field field, sol_field;
+  ma_ptr2field field = NULL, sol_field;
   
   if (maRowInit(&indep_cols))
   {
@@ -2571,7 +2575,7 @@ void maMatrixShow2 (ma_ptr2matrix sparse)
 /* ----- maMatrixShowSol1 --------------------------- */
 void maMatrixShowSol1 (ma_ptr2matrix sparse, ma_ptr2solution solution)
 {
-  int anzeige, used, no_cols = 0, no_rows = 0, no_elems = 0;  
+  int used, no_cols = 0, no_rows = 0, no_elems = 0;  
   ma_ptr2col f_col;
   ma_ptr2row f_row;
   ma_ptr2field field;
@@ -2658,7 +2662,7 @@ void maMatrixShowSol1 (ma_ptr2matrix sparse, ma_ptr2solution solution)
 /* ----- maMatrixShowSol2 --------------------------- */
 void maMatrixShowSol2 (ma_ptr2matrix sparse, ma_ptr2solution solution)
 {
-  int anzeige, col_used, no_elems = 0;  
+  int col_used, no_elems = 0;  
   ma_ptr2col f_col, f_check;
   ma_ptr2row f_row;
   ma_ptr2field field;
