@@ -32,6 +32,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
+#define MWC_DISABLE
+
 #ifndef NDEBUG
 #ifndef MWC_DISABLE
 #define ___MWC_ENABLE
