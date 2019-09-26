@@ -28,6 +28,7 @@
 
   Makes use of:
     https://github.com/ChristianVisintin/termiWin for Win compatibility
+	see also: http://www.egmont.com.pl/addi-data/instrukcje/standard_driver.pdf
 
   Other Tools:
     - https://sourceforge.net/projects/lpc21isp/    	Last version from 2014, LPC804 not supported
@@ -38,22 +39,45 @@
 
 */
 
+
+#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
+
+#include "termiwin.h"
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
-
-#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
-#include "termiwin.h"
-#else
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <termios.h>
 #include <unistd.h>
+#ifndef O_NONBLOCK
+#define O_NONBLOCK 0
 #endif
+#ifndef O_NDELAY
+#define O_NDELAY 0
+#endif
+
+
+#else
+	
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <assert.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <termios.h>
+
+#endif
+
 
 #include <time.h>
 
@@ -70,6 +94,46 @@
 int fmem_store_data(unsigned long adr, unsigned long cnt, unsigned char *data);
 void uart_show_in_buf(void);
 
+
+/*================================================*/
+/* termiwin redefines */
+
+/*
+#define read(...) readFromSerial(__VA_ARGS__)
+#define write(...) writeToSerial(__VA_ARGS__)
+#define select(...) selectSerial(__VA_ARGS__)
+#define open(...) openSerial(__VA_ARGS__)
+#define close(...) closeSerial(__VA_ARGS__)
+*/
+
+/*
+
+int selectSerial(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+int readFromSerial(int fd, char* buffer, int count);
+int writeToSerial(int fd, char* buffer, int count);
+int openSerial(const char* portname, int opt);
+int closeSerial(int fd);
+*/
+
+int my_open(const char* portname, int opt)
+{
+	return openSerial(portname, opt);
+}
+
+int my_close(int fd)
+{
+	return closeSerial(fd);
+}
+
+int my_read(int fd, char* buffer, int count)
+{
+	return readFromSerial(fd, buffer, count);
+}
+
+int my_write(int fd, const char* buffer, int count)
+{
+	return writeToSerial(fd, (char *)buffer, count);
+}
 
 /*================================================*/
 /* error procedure */
@@ -674,17 +738,20 @@ int uart_open(const char *device, int baud)
 	{
 	  case B57600:
 	  case B115200:
+#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
+#else
 	  case B230400:
+#endif
 	    wait_time_in_clk_ticks = CLOCKS_PER_SEC/8;
 	    break;
 	}
 	
   
-	uart_fd=open(device, O_RDWR|O_NONBLOCK|O_NDELAY);
+	uart_fd=my_open(device, O_RDWR|O_NONBLOCK|O_NDELAY);
 	if ( uart_fd < 0 )
 		return perror(device), err("uart: %s error", device), 0;
 	if ( tcgetattr(uart_fd, &uart_io) < 0 )
-		return close(uart_fd), err("uart: tcgetattr error"), 0;
+		return my_close(uart_fd), err("uart: tcgetattr error"), 0;
 	
 	uart_io.c_iflag = IGNBRK | IGNPAR;
 	uart_io.c_oflag = 0;
@@ -695,14 +762,14 @@ int uart_open(const char *device, int baud)
 	
 	
 	if ( cfsetispeed(&uart_io, baud) < 0 )
-		return close(uart_fd), err("uart: cfsetispeed error"), 0;
+		return my_close(uart_fd), err("uart: cfsetispeed error"), 0;
 	if ( cfsetospeed(&uart_io, baud) < 0 )
-		return close(uart_fd), err("uart: cfsetospeed error"), 0;
+		return my_close(uart_fd), err("uart: cfsetospeed error"), 0;
 	if ( cfsetspeed(&uart_io, baud) < 0 )
-		return close(uart_fd), err("uart: cfsetspeed error"), 0;
+		return my_close(uart_fd), err("uart: cfsetspeed error"), 0;
 
 	if ( tcsetattr(uart_fd, TCSANOW, &uart_io) < 0 )
-		return close(uart_fd), err("uart: tcsetattr error"), 0;
+		return my_close(uart_fd), err("uart: tcsetattr error"), 0;
 	
 
 	return 1;	
@@ -714,7 +781,7 @@ int uart_read_byte(void)
 	unsigned char buf[2];
 	if ( uart_fd < 0 )
 		return -1;
-	cnt = read(uart_fd, buf, 1);
+	cnt = my_read(uart_fd, buf, 1);
 	if ( cnt == 0 )
 		return -1;
 	uart_add_in_buf(buf[0]);
@@ -727,7 +794,7 @@ void uart_read_bytes(void)
 	unsigned char buf[UART_BLOCKSIZE+2];
 	if ( uart_fd < 0 )
 		return;
-	cnt = read(uart_fd, buf, UART_BLOCKSIZE);
+	cnt = my_read(uart_fd, buf, UART_BLOCKSIZE);
 	for( i = 0; i < cnt; i++)
 	  uart_add_in_buf(buf[i]);
 }
@@ -738,7 +805,7 @@ int uart_send_byte(int c)
 	buf[0] = c;
 	if ( uart_fd >= 0 )
 	{
-		write(uart_fd, buf, 1);
+		my_write(uart_fd, buf, 1);
 		uart_read_byte();
 	}
 	return 1;
@@ -753,7 +820,7 @@ int uart_send_bytes(int cnt, const unsigned char *buf)
     {
       if ( i + UART_BLOCKSIZE <= cnt )
       {
-	write(uart_fd, buf+i, UART_BLOCKSIZE);
+	my_write(uart_fd, buf+i, UART_BLOCKSIZE);
 	uart_read_bytes();
 	/*
 	for( j = 0; j < UART_BLOCKSIZE; j++ )
@@ -763,7 +830,7 @@ int uart_send_bytes(int cnt, const unsigned char *buf)
       }
       else
       {
-	write(uart_fd, buf+i, 1);
+	my_write(uart_fd, buf+i, 1);
 	uart_read_byte();
 	i++;
       }
@@ -786,14 +853,14 @@ int uart_send_cnt_bytes(int cnt, unsigned char data)
     {
       if ( i + UART_BLOCKSIZE <= cnt )
       {
-	write(uart_fd, buf, UART_BLOCKSIZE);
+	my_write(uart_fd, buf, UART_BLOCKSIZE);
 	for( j = 0; j < UART_BLOCKSIZE; j++ )
 	  uart_read_byte();
 	i+=UART_BLOCKSIZE;
       }
       else
       {
-	write(uart_fd, buf, 1);
+	my_write(uart_fd, buf, 1);
 	uart_read_byte();
 	i++;
       }

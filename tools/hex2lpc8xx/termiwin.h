@@ -33,12 +33,21 @@
 /*Redefining functions from winsock to termiWin. This is very important since winsock2 defines functions such as close as closesocket we have to redefine it*/
 
 #ifndef TERMIWIN_DONOTREDEFINE
-#define read readFromSerial
-#define write writeToSerial
-#define select selectSerial
-#define open openSerial
-#define close closeSerial
+//#define read(...) readFromSerial(__VA_ARGS__)
+//#define write(...) writeToSerial(__VA_ARGS__)
+//#define select(...) selectSerial(__VA_ARGS__)
+//#define open(...) openSerial(__VA_ARGS__)
+//#define close(...) closeSerial(__VA_ARGS__)
 #endif
+
+/*
+int selectSerial(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+int readFromSerial(int fd, char* buffer, int count);
+int writeToSerial(int fd, char* buffer, int count);
+int openSerial(const char* portname, int opt);
+int closeSerial(int fd);
+*/
+
 
 //Serial options - Linux -> Windows
 
@@ -177,7 +186,7 @@ int cfsetspeed(struct termios * termios_p, speed_t speed);
 int selectSerial(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 int readFromSerial(int fd, char* buffer, int count);
 int writeToSerial(int fd, char* buffer, int count);
-int openSerial(char* portname, int opt);
+int openSerial(const char* portname, int opt);
 int closeSerial(int fd);
 
 //get Handle out of the COM structure

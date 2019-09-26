@@ -473,7 +473,7 @@ int writeToSerial(int fd, char* buffer, int count) {
     return rc;
 }
 
-int openSerial(char* portname, int opt) {
+int openSerial(const char* portname, int opt) {
 
   if (strlen(portname) < 4) return -1;
 
@@ -493,6 +493,9 @@ int openSerial(char* portname, int opt) {
 
   case O_RDWR:
     com.hComm = CreateFile(com.port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	
+    com.hComm = CreateFile(com.port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+	
     break;
 
   case O_RDONLY:
