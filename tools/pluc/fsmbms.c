@@ -939,7 +939,7 @@ static int bms_have_output = 0;
 static int is_bms_line(char *s)
 {
   char *t;
-  int v;
+  //int v;
   char from[BMS_STATE_NAME];
   char to[BMS_STATE_NAME];
   
@@ -970,9 +970,9 @@ static int is_bms_line(char *s)
       fsm_bms_skipspace(&s);
       t = fsm_bms_getid(&s);
       fsm_bms_skipspace(&s);
-      v = 0;
+      //v = 0;
       if ( *s != '\0' )
-        v = fsm_bms_getval(&s);
+        fsm_bms_getval(&s);
       bms_have_input = 1;
       return 1;
     }
@@ -982,9 +982,9 @@ static int is_bms_line(char *s)
       fsm_bms_skipspace(&s);
       t = fsm_bms_getid(&s);
       fsm_bms_skipspace(&s);
-      v = 0;
+      //v = 0;
       if ( *s != '\0' )
-        v = fsm_bms_getval(&s);
+        fsm_bms_getval(&s);
       bms_have_output = 1;
       return 1;
     }
@@ -1027,11 +1027,13 @@ static int is_bms_line(char *s)
       return 0;
     }
     
+    /*
     v = 0;
     if ( *s == '+' )
       v = 1;
     if ( *s == '*' )
       v = 2;
+    */
     s++;
       
     fsm_bms_skipspace(&s);

@@ -362,7 +362,7 @@ int maColLogAnd (ma_ptr2col h_colptr_dest, ma_ptr2col h_colptr_src1, ma_ptr2col 
   int rtc = 0;
   
   /* Wenn die Destination nicht leer ist */
-  if (h_colptr_dest->cnt = 0)
+  if (h_colptr_dest->cnt == 0)	// 2019 ok: changed = to ==
     rtc = 1;
 
   field1 = h_colptr_src1->fieldptr_firstrow;
@@ -405,13 +405,14 @@ int maColLogAnd (ma_ptr2col h_colptr_dest, ma_ptr2col h_colptr_src1, ma_ptr2col 
 /* ----- maColShow ---------------------------------- */
 void maColShow (ma_ptr2col h_colptr)
 {
-  ma_ptr2field field;
+  //ma_ptr2field field;
 
   tprintf("col no %3d: ", h_colptr->no);
 
+  /* 2019: endless loop? statement with no effect
   for (field = h_colptr->fieldptr_firstrow; field != NULL; field->fieldptr_nextrow)
     tprintf("%d ", field->row_no);
-
+  */
   tprintf("/n");
 }
 
@@ -1158,7 +1159,7 @@ void maMatrixDeleteCol (ma_ptr2matrix sparse, int h_col)
   ma_ptr2col f_col;
   ma_ptr2row f_row;
   ma_ptr2field field, field_next;
-  int f_rowno, letzte = -1;
+  int f_rowno;
   
   f_col = sparse->cols[h_col];
   if (f_col != NULL)
@@ -1310,7 +1311,7 @@ void maMatrixDeleteRow (ma_ptr2matrix sparse, int h_row)
   ma_ptr2field field, field_next;
   ma_ptr2col f_col;
   ma_ptr2row f_row;
-  int f_colno, letzte = -1;
+  int f_colno;
   
   f_row = sparse->rows[h_row];
   if (f_row != NULL)
@@ -1395,7 +1396,7 @@ void maMatrixDeleteRow (ma_ptr2matrix sparse, int h_row)
 void maMatrixDestroy (ma_ptr2matrix sparse)
 {
   ma_ptr2col f_col, f_col_next;
-  ma_ptr2row f_row, f_row_next;
+  //ma_ptr2row f_row, f_row_next;
   
   if (sparse != NULL)
   {
@@ -1483,7 +1484,7 @@ void maMatrixFindField (ma_ptr2matrix sparse, ma_ptr2field *field, int h_col, in
 int maMatrixFindIndepCols (ma_ptr2matrix sparse, ma_ptr2matrix intersection, int *weight, ma_ptr2solution solution)
 {
   ma_ptr2row f_row, f_bestrow, f_copyrow;
-  ma_ptr2col f_col;
+  //ma_ptr2col f_col;
   ma_ptr2field field;
   int lo_weight, rtc = 1;
   
@@ -1582,7 +1583,7 @@ int maMatrixDCL (pinfo *pi, dclist cl, int greedy, int lit_opt)
 {
   ma_ptr2matrix ma_matrix;
   ma_ptr2solution ma_solution;
-  ma_ptr2col ma_col;
+  //ma_ptr2col ma_col;
   ma_ptr2field ma_field;
   int *weight = NULL;
 
@@ -1817,6 +1818,7 @@ int maMatrixInsertField (ma_ptr2matrix sparse, int h_col, int h_row)
 
   /* Das (evtl.) neue Feld der Matrix aufbauen */
   if (rtc != 0)
+  {
     if (maFieldInit(&newfield))
     {  
       nf_copy = newfield;
@@ -1832,7 +1834,7 @@ int maMatrixInsertField (ma_ptr2matrix sparse, int h_col, int h_row)
     }
     else
       rtc = 0;
-
+  }
   return rtc;
 }
 

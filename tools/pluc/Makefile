@@ -6,7 +6,7 @@
 # gnet: only dgd_opt.h
 # gnet & syl only required for dgc
 
-CFLAGS = -g -Wall -ffunction-sections -fdata-sections -I. -DMWC_DISABLE
+CFLAGS = -g -Wall -ffunction-sections -fdata-sections -I. 
 LDFLAGS = -Wl,--gc-sections
 
 
