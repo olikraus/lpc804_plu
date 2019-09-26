@@ -45,11 +45,15 @@
 #include <string.h>
 #include <assert.h>
 
+#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
+#include "termiwin.h"
+#else
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
+#endif
 
 #include <time.h>
 
@@ -1653,7 +1657,11 @@ void help(void)
   printf("-x        Execute ARM reset handler after upload\n");
   printf("          Note: Reset handler must set the stack pointer and restore SYSMEMREMAP\n");
   printf("-p <port> Use UART at <port> (default: '/dev/ttyUSB0')\n");
+#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
+  printf("-s <n>    Set UART transfer speed, 0=9600 (default), 1=19200, 2=57600, 3=115200\n");
+#else
   printf("-s <n>    Set UART transfer speed, 0=9600 (default), 1=19200, 2=57600, 3=115200, 4=230400\n");
+#endif
   printf("-i        Show ISP commands sent to the device\n");
 }
 
@@ -1722,7 +1730,10 @@ int main(int argc, char **argv)
     case 1: baud = B19200; break;
     case 2: baud = B57600; break;
     case 3: baud = B115200; break;
+#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
+#else
     case 4: baud = B230400; break;
+#endif
   }
   
   //fmem_show();
