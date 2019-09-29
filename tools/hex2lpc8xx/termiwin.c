@@ -459,13 +459,49 @@ int readFromSerial(int fd, char* buffer, int count) {
     return rc;
 }
 
+
+
+static unsigned char is_data_available = 0;
+static unsigned char serial_data[2];
+
+
+//https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-readfileex
+void readByteCompletionCallback( DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
+{
+  is_data_available = 1;
+}
+
+// only every second call will succeed...
+int readByteFromSerial(int fd)
+{
+  static char buf[2];
+  static OVERLAPPED ovl;
+  if (fd != com.fd) return -1;
+  
+  if ( is_data_available != 0 )
+  {
+    is_data_available = 0;
+    return serial_data[0];
+  }
+  
+  if ( ReadFileEx(com.hComm, (LPVOID)buf, 1, &ovl, readByteCompletionCallback) > 0 )
+    return -1;	// all ok
+  
+  // some error happend, still return -1
+  return -1;
+}
+
+/*
+https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-writefileex
+https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-writefile
+*/
 int writeToSerial(int fd, char* buffer, int count) {
 
   if (fd != com.fd) return -1;
   int rc = 0;
   int ret;
 
-  ret = WriteFile(com.hComm, buffer, count, &rc, NULL);
+  ret = WriteFile(com.hComm, buffer, count, &rc, NULL); // valid also for overlap mode
 
   if (ret == 0)
     return -1;
@@ -492,7 +528,7 @@ int openSerial(const char* portname, int opt) {
   switch (opt) {
 
   case O_RDWR:
-    com.hComm = CreateFile(com.port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    //com.hComm = CreateFile(com.port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	
     com.hComm = CreateFile(com.port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
 	

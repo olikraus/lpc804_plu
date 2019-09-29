@@ -28,7 +28,9 @@
 
   Makes use of:
     https://github.com/ChristianVisintin/termiWin for Win compatibility
-	see also: http://www.egmont.com.pl/addi-data/instrukcje/standard_driver.pdf
+	see also: 
+	  http://www.egmont.com.pl/addi-data/instrukcje/standard_driver.pdf
+	  https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-readfileex
 
   Other Tools:
     - https://sourceforge.net/projects/lpc21isp/    	Last version from 2014, LPC804 not supported
@@ -39,8 +41,14 @@
 
 */
 
-
 #if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
+#define WIN32_SERIAL
+#else
+#define LINUX_SERIAL
+#endif
+
+
+#ifdef WIN32_SERIAL
 
 #include "termiwin.h"
 
@@ -60,7 +68,6 @@
 #ifndef O_NDELAY
 #define O_NDELAY 0
 #endif
-
 
 #else
 	
@@ -835,6 +842,10 @@ int uart_send_bytes(int cnt, const unsigned char *buf)
 	i++;
       }
     }
+    
+    /* read any pending bytes */
+    while( uart_read_byte() >= 0 )
+	;
   }
   return 1;
 }
