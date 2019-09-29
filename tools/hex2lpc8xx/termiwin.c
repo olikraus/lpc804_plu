@@ -448,7 +448,7 @@ int selectSerial(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
 int readFromSerial(int fd, char* buffer, int count) {
 
   if (fd != com.fd) return -1;
-  int rc = 0;
+  DWORD rc = 0;
   int ret;
 
   ret = ReadFile(com.hComm, buffer, count, &rc, NULL);
@@ -456,19 +456,22 @@ int readFromSerial(int fd, char* buffer, int count) {
   if (ret == 0)
     return -1;
   else
-    return rc;
+    return (int)rc;
 }
 
 
 
-static unsigned char is_data_available = 0;
+#define DATA_STATE_NONE 0
+#define DATA_STATE_WAIT 1
+#define DATA_STATE_DONE 2
+static unsigned char data_state = DATA_STATE_NONE;
 static unsigned char serial_data[2];
 
 
 //https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-readfileex
 void readByteCompletionCallback( DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
 {
-  is_data_available = 1;
+  data_state = DATA_STATE_DONE;
 }
 
 // only every second call will succeed...
@@ -477,17 +480,23 @@ int readByteFromSerial(int fd)
   static char buf[2];
   static OVERLAPPED ovl;
   if (fd != com.fd) return -1;
+
+
   
-  if ( is_data_available != 0 )
+  if ( data_state == DATA_STATE_DONE )
   {
-    is_data_available = 0;
+    data_state = DATA_STATE_NONE;
     return serial_data[0];
   }
+
+  if ( data_state == DATA_STATE_NONE )
+  {
+	  data_state = DATA_STATE_WAIT;
+	  if ( ReadFileEx(com.hComm, (LPVOID)buf, 1, &ovl, readByteCompletionCallback) > 0 )
+		return -1;	// all ok	  
+  }
   
-  if ( ReadFileEx(com.hComm, (LPVOID)buf, 1, &ovl, readByteCompletionCallback) > 0 )
-    return -1;	// all ok
   
-  // some error happend, still return -1
   return -1;
 }
 
@@ -498,7 +507,7 @@ https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-writefile
 int writeToSerial(int fd, char* buffer, int count) {
 
   if (fd != com.fd) return -1;
-  int rc = 0;
+  DWORD rc = 0;
   int ret;
 
   ret = WriteFile(com.hComm, buffer, count, &rc, NULL); // valid also for overlap mode
@@ -506,7 +515,7 @@ int writeToSerial(int fd, char* buffer, int count) {
   if (ret == 0)
     return -1;
   else
-    return rc;
+    return (int)rc;
 }
 
 int openSerial(const char* portname, int opt) {

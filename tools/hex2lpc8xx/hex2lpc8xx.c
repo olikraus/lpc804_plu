@@ -134,7 +134,32 @@ int my_close(int fd)
 
 int my_read(int fd, char* buffer, int count)
 {
-	return readFromSerial(fd, buffer, count);
+	int i;
+	int c;
+	for(;;)
+	{
+		if ( i == count )
+			break;
+		
+		c = readByteFromSerial(fd);
+		if ( c < 0 )
+		{
+			c = readByteFromSerial(fd);
+			if ( c < 0 )
+			{
+				break;
+			}
+			else
+			{
+				buffer[i++] = (char)c;
+			}
+		}
+		else
+		{
+			buffer[i++] = (char)c;
+		}
+	}
+	return i;
 }
 
 int my_write(int fd, const char* buffer, int count)
@@ -154,6 +179,7 @@ void err(char *fmt, ...)
 
   printf("Last com data:\n");
   uart_show_in_buf();
+  fflush(stdout);
 }
 
 /* user msg */
@@ -164,6 +190,7 @@ void msg(char *fmt, ...)
 	vprintf(fmt, va);
 	printf("\n");
 	va_end(va);
+	fflush(stdout);
 }
 
 
@@ -940,7 +967,7 @@ void uart_read_more(void)
 		c =uart_read_byte();
 		if ( c >= 0 )
 		{
-			// printf("[%lu %d %c]\n", received_chars, c, c < ' ' ? ' ' : c);
+			printf("[%lu %d %c]\n", received_chars, c, c < ' ' ? ' ' : c); fflush(stdout);
 			start = clock();			/* reset clock */
 			//wait = wait_time_in_clk_ticks/4;	/* wait lesser once another byte was read */
 			received_chars++;
