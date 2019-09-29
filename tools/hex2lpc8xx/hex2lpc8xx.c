@@ -136,9 +136,10 @@ int my_read(int fd, char* buffer, int count)
 {
 	int i;
 	int c;
+	i = 0;
 	for(;;)
 	{
-		if ( i == count )
+		if ( i >= count )
 			break;
 		
 		c = readByteFromSerial(fd);
@@ -159,6 +160,7 @@ int my_read(int fd, char* buffer, int count)
 			buffer[i++] = (char)c;
 		}
 	}
+	//printf("my_read end i=%d\n", i); fflush(stdout);
 	return i;
 }
 

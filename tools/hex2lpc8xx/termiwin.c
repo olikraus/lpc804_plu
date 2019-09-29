@@ -22,6 +22,7 @@
 #include "termiwin.h"
 #include <fcntl.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 typedef struct COM {
   HANDLE hComm;
@@ -492,8 +493,15 @@ int readByteFromSerial(int fd)
   if ( data_state == DATA_STATE_NONE )
   {
 	  data_state = DATA_STATE_WAIT;
+	  
+	  puts("Pre ReadFileEx"); fflush(stdout);
 	  if ( ReadFileEx(com.hComm, (LPVOID)buf, 1, &ovl, readByteCompletionCallback) > 0 )
-		return -1;	// all ok	  
+	  {
+		puts("Post ReadFileEx 1"); fflush(stdout);
+		return -1;
+	  }
+	  puts("Post ReadFileEx 2"); fflush(stdout);
+	
   }
   
   
@@ -509,8 +517,22 @@ int writeToSerial(int fd, char* buffer, int count) {
   if (fd != com.fd) return -1;
   DWORD rc = 0;
   int ret;
+  static OVERLAPPED ovl;
 
-  ret = WriteFile(com.hComm, buffer, count, &rc, NULL); // valid also for overlap mode
+  printf("Pre WriteFile count=%d\n", (int)count); fflush(stdout);
+  
+  ret = WriteFile(com.hComm, buffer, count, &rc, &ovl); // valid also for overlap mode
+  printf("Post WriteFile rc=%d ret=%d error=%ld\n", (int)rc, ret, (long)GetLastError()); fflush(stdout);
+  /* liefert immer: 
+
+    997 (0x3E5)
+
+    Overlapped I/O operation is in progress.
+
+	doch besser das ex interface nehmen???
+	
+*/
+  
 
   if (ret == 0)
     return -1;
