@@ -465,8 +465,8 @@ int readFromSerial(int fd, char* buffer, int count) {
 #define DATA_STATE_NONE 0
 #define DATA_STATE_WAIT 1
 #define DATA_STATE_DONE 2
-static unsigned char data_state = DATA_STATE_NONE;
-static unsigned char serial_data[2];
+static volatile unsigned char data_state = DATA_STATE_NONE;
+static volatile unsigned char serial_data[2];
 
 
 //https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-readfileex
@@ -512,17 +512,36 @@ int readByteFromSerial(int fd)
 https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-writefileex
 https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-writefile
 */
+
+static volatile int is_write_done = 0;
+
+void writeByteCompletionCallback( DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
+{
+  is_write_done = 1;
+}
+
+
 int writeToSerial(int fd, char* buffer, int count) {
 
   if (fd != com.fd) return -1;
   DWORD rc = 0;
   int ret;
+  int i = 0;
   static OVERLAPPED ovl;
 
   printf("Pre WriteFile count=%d\n", (int)count); fflush(stdout);
   
-  ret = WriteFile(com.hComm, buffer, count, &rc, &ovl); // valid also for overlap mode
-  printf("Post WriteFile rc=%d ret=%d error=%ld\n", (int)rc, ret, (long)GetLastError()); fflush(stdout);
+  //ret = WriteFile(com.hComm, buffer, count, &rc, &ovl); // valid also for overlap mode
+  
+  is_write_done = 0;
+  ret = WriteFileEx(com.hComm, buffer, count, &ovl, writeByteCompletionCallback)
+  
+  while( is_write_done == 0 )
+  {
+    printf("Post WriteFile rc=%d ret=%d error=%ld i=%d\n", (int)rc, ret, (long)GetLastError(), i); fflush(stdout);
+    i++;
+  }
+  
   /* liefert immer: 
 
     997 (0x3E5)
@@ -534,10 +553,13 @@ int writeToSerial(int fd, char* buffer, int count) {
 */
   
 
+  /*
   if (ret == 0)
     return -1;
   else
     return (int)rc;
+  */
+  return count;
 }
 
 int openSerial(const char* portname, int opt) {
