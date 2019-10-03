@@ -2,10 +2,10 @@
 
 ## lpc21isp
 
-Sourcecode: https://github.com/olikraus/lpc21isp
-Forked from: https://github.com/starblue/lpc21isp
-Which was forked from: https://github.com/capiman/lpc21isp
-Which was probably taken over from: https://sourceforge.net/projects/lpc21isp/files/lpc21isp/
+ - Sourcecode: https://github.com/olikraus/lpc21isp
+ - Forked from: https://github.com/starblue/lpc21isp
+ - Which was forked from: https://github.com/capiman/lpc21isp
+ - Which was probably taken over from: https://sourceforge.net/projects/lpc21isp/files/lpc21isp/
 
 lpc21isp features:
  - The version from starblue can flash LPC804 devices.
