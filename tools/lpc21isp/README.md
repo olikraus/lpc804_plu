@@ -25,7 +25,13 @@ LPC804: hex2lpc8xx vs lpc21isp
 Linux commandline:
 
 ```
-./lpc21isp -verify lpc804_test.hex  /dev/ttyUSB0 115200 14746
+./lpc21isp.linux.x86-64 -verify lpc804_test.hex  /dev/ttyUSB0 115200 14746
+```
+
+Win 10 commandline:
+
+```
+lpc21isp.win.x86-64 -verify lpc804_test.hex COM3 115200 14746
 ```
 
 
