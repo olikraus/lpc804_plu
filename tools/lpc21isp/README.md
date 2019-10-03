@@ -20,7 +20,7 @@ LPC804: hex2lpc8xx vs lpc21isp
 | Device auto-detect | yes | yes |
 | Flash speed (2K) | 5 seconds | < 1 second |
 | Execute new code | yes (-x) | yes, but does not work in my case (why???) |
-| Device not yet ready | Wait until it becomes ready | Abort with error |
+| Device not yet ready | Wait until uC becomes ready | Abort with error |
 
 Linux commandline:
 
