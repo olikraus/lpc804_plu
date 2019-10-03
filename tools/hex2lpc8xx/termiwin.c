@@ -518,6 +518,7 @@ static volatile int is_write_done = 0;
 void writeByteCompletionCallback( DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
 {
   is_write_done = 1;
+   printf("COMPLETED\n"); fflush(stdout);
 }
 
 
@@ -528,18 +529,24 @@ int writeToSerial(int fd, char* buffer, int count) {
   int ret;
   int i = 0;
   static OVERLAPPED ovl;
+  ovl.Offset = 0xFFFFFFFF;
+  ovl.OffsetHigh = 0xFFFFFFFF;
 
   printf("Pre WriteFile count=%d\n", (int)count); fflush(stdout);
   
   //ret = WriteFile(com.hComm, buffer, count, &rc, &ovl); // valid also for overlap mode
   
   is_write_done = 0;
-  ret = WriteFileEx(com.hComm, buffer, count, &ovl, writeByteCompletionCallback)
+  ret = WriteFileEx(com.hComm, buffer, count, &ovl, writeByteCompletionCallback);
   
   while( is_write_done == 0 )
   {
-    printf("Post WriteFile rc=%d ret=%d error=%ld i=%d\n", (int)rc, ret, (long)GetLastError(), i); fflush(stdout);
+	if ( (i % 1000) == 0)
+	{
+		printf("Post WriteFile rc=%d ret=%d error=%ld i=%d\n", (int)rc, ret, (long)GetLastError(), i); fflush(stdout);
+	}
     i++;
+	
   }
   
   /* liefert immer: 

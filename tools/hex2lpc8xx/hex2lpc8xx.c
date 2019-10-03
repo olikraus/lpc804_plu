@@ -31,9 +31,12 @@
 	see also: 
 	  http://www.egmont.com.pl/addi-data/instrukcje/standard_driver.pdf
 	  https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-readfileex
+	  
+	  https://www.xanthium.in/Serial-Port-Programming-using-Win32-API
 
   Other Tools:
     - https://sourceforge.net/projects/lpc21isp/    	Last version from 2014, LPC804 not supported
+			Version with LPC804 support: https://github.com/starblue/lpc21isp/tree/lpc84x
     - https://github.com/tinic/LPC824_Minimal/tree/master/lpc21isp
     - http://www.windscooting.com/softy/mxli.html	not tested, not sure whether LPC804 is supported
     - http://www.flashmagictool.com/				GUI
