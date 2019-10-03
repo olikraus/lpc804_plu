@@ -26,53 +26,14 @@
     - Part ID detection (if no hex file is specified on the commandline)
     - Autostart of the uploaded hex file
 
-  Makes use of:
-    https://github.com/ChristianVisintin/termiWin for Win compatibility
-	see also: 
-	  http://www.egmont.com.pl/addi-data/instrukcje/standard_driver.pdf
-	  https://docs.microsoft.com/de-de/windows/win32/api/fileapi/nf-fileapi-readfileex
-	  
-	  https://www.xanthium.in/Serial-Port-Programming-using-Win32-API
 
   Other Tools:
-    - https://sourceforge.net/projects/lpc21isp/    	Last version from 2014, LPC804 not supported
-			Version with LPC804 support: https://github.com/starblue/lpc21isp/tree/lpc84x
-    - https://github.com/tinic/LPC824_Minimal/tree/master/lpc21isp
+    - https://github.com/starblue/lpc21isp/tree/lpc84x    	Last version from 2014, LPC804 not supported
     - http://www.windscooting.com/softy/mxli.html	not tested, not sure whether LPC804 is supported
     - http://www.flashmagictool.com/				GUI
     - http://git.techno-innov.fr/?p=lpctools			LPC804 not part of the definitions, but could be added
 
 */
-
-#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
-#define WIN32_SERIAL
-#else
-#define LINUX_SERIAL
-#endif
-
-
-#ifdef WIN32_SERIAL
-
-#include "termiwin.h"
-
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <assert.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#ifndef O_NONBLOCK
-#define O_NONBLOCK 0
-#endif
-#ifndef O_NDELAY
-#define O_NDELAY 0
-#endif
-
-#else
 	
 #include <stdio.h>
 #include <stdarg.h>
@@ -85,8 +46,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
-
-#endif
 
 
 #include <time.h>
@@ -105,71 +64,25 @@ int fmem_store_data(unsigned long adr, unsigned long cnt, unsigned char *data);
 void uart_show_in_buf(void);
 
 
-/*================================================*/
-/* termiwin redefines */
-
-/*
-#define read(...) readFromSerial(__VA_ARGS__)
-#define write(...) writeToSerial(__VA_ARGS__)
-#define select(...) selectSerial(__VA_ARGS__)
-#define open(...) openSerial(__VA_ARGS__)
-#define close(...) closeSerial(__VA_ARGS__)
-*/
-
-/*
-
-int selectSerial(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
-int readFromSerial(int fd, char* buffer, int count);
-int writeToSerial(int fd, char* buffer, int count);
-int openSerial(const char* portname, int opt);
-int closeSerial(int fd);
-*/
 
 int my_open(const char* portname, int opt)
 {
-	return openSerial(portname, opt);
+	return open(portname, opt);
 }
 
 int my_close(int fd)
 {
-	return closeSerial(fd);
+	return close(fd);
 }
 
-int my_read(int fd, char* buffer, int count)
+int my_read(int fd, unsigned char* buffer, int count)
 {
-	int i;
-	int c;
-	i = 0;
-	for(;;)
-	{
-		if ( i >= count )
-			break;
-		
-		c = readByteFromSerial(fd);
-		if ( c < 0 )
-		{
-			c = readByteFromSerial(fd);
-			if ( c < 0 )
-			{
-				break;
-			}
-			else
-			{
-				buffer[i++] = (char)c;
-			}
-		}
-		else
-		{
-			buffer[i++] = (char)c;
-		}
-	}
-	//printf("my_read end i=%d\n", i); fflush(stdout);
-	return i;
+  return read(fd, buffer, count);
 }
 
-int my_write(int fd, const char* buffer, int count)
+int my_write(int fd, const unsigned char* buffer, int count)
 {
-	return writeToSerial(fd, (char *)buffer, count);
+  return write(fd, buffer, count);
 }
 
 /*================================================*/
@@ -777,10 +690,7 @@ int uart_open(const char *device, int baud)
 	{
 	  case B57600:
 	  case B115200:
-#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
-#else
 	  case B230400:
-#endif
 	    wait_time_in_clk_ticks = CLOCKS_PER_SEC/8;
 	    break;
 	}
@@ -972,7 +882,7 @@ void uart_read_more(void)
 		c =uart_read_byte();
 		if ( c >= 0 )
 		{
-			printf("[%lu %d %c]\n", received_chars, c, c < ' ' ? ' ' : c); fflush(stdout);
+			//printf("[%lu %d %c]\n", received_chars, c, c < ' ' ? ' ' : c); fflush(stdout);
 			start = clock();			/* reset clock */
 			//wait = wait_time_in_clk_ticks/4;	/* wait lesser once another byte was read */
 			received_chars++;
@@ -1767,11 +1677,7 @@ void help(void)
   printf("-x        Execute ARM reset handler after upload\n");
   printf("          Note: Reset handler must set the stack pointer and restore SYSMEMREMAP\n");
   printf("-p <port> Use UART at <port> (default: '/dev/ttyUSB0')\n");
-#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
-  printf("-s <n>    Set UART transfer speed, 0=9600 (default), 1=19200, 2=57600, 3=115200\n");
-#else
   printf("-s <n>    Set UART transfer speed, 0=9600 (default), 1=19200, 2=57600, 3=115200, 4=230400\n");
-#endif
   printf("-i        Show ISP commands sent to the device\n");
 }
 
@@ -1840,10 +1746,7 @@ int main(int argc, char **argv)
     case 1: baud = B19200; break;
     case 2: baud = B57600; break;
     case 3: baud = B115200; break;
-#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
-#else
     case 4: baud = B230400; break;
-#endif
   }
   
   //fmem_show();
