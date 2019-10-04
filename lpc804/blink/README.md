@@ -7,3 +7,5 @@
  
 
 ![lpc804_blink_schematic.png](lpc804_blink_schematic.png)
+
+![lpc804_blink_hardware.png](lpc804_blink_hardware.png)
