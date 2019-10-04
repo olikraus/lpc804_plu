@@ -19,4 +19,4 @@ for %%f in (*.c) do call set SRC=%%SRC%% %%f
 echo on
 %GCC% %CCFLAGS%%SRC% %LDFLAGS% -o %TARGET%.elf
 %OBJCOPY% -O ihex  %TARGET%.elf %TARGET%.hex
-..\..\tools\hex2lpc8xx\hex2lpc8xx.exe -x -s 3 -v -f %TARGET%.hex
+..\..\tools\lpc21isp\lpc21isp.win.x86-64 -verify %TARGET%.hex COM3 115200 14746
