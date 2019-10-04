@@ -1,4 +1,4 @@
-# Simple Blink Example
+# Simple Blink Example for the LPC804
 
  * USB UART Converter is connected to pins 6 and 19 of the LPC804
  * A switch at pin 4 selects between in-system programming and user code mode
