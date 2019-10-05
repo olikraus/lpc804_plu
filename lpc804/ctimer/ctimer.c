@@ -1,5 +1,15 @@
 /*
-  use ctimer to do a LED blink
+
+  ctimer.c
+  
+  Use ctimer to do a LED blink
+  
+  Assumes LED at PIO0_15
+  LED will flash for 100ms and stays dark for 900ms.
+  
+    - CTIMER is configures as PWM
+    - CTIMER output is routed via PIN0_30 to PIN_15 (just to test LVLSHFT0)
+    
 */
 
 
@@ -39,6 +49,14 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
     port: A port number for the GPIO port (0..30)
 
 */
+void mapFunctionToPort(uint32_t fn, uint32_t port)
+{
+  /* first reset the pin assignment to 0xff (this is also the reset value */
+  LPC_SWM->PINASSIGN[fn/4] |= ((0xffUL)<<(8*(fn%4)));
+  /* then write the destination pin to it */
+  LPC_SWM->PINASSIGN[fn/4] &= ~((port^255UL)<<(8*(fn%4)));
+}
+
 void mapFunctionToPort(uint32_t fn, uint32_t port)
 {
   /* first reset the pin assignment to 0xff (this is also the reset value */
