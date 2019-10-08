@@ -1402,6 +1402,8 @@ int dclReadBEXStr(pinfo *pi, dclist cl_on, dclist cl_dc, const char *content)
   if ( n == NULL )
     return dcexClose(dcex), 0;
 
+  //dcexShow(dcex, n);
+
   /* 2019: This block is now removed and bex format partly supports in and out variables. */
   /* For backward compatibility the following block could be uncommented. */
 /*  

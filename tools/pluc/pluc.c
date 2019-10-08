@@ -747,7 +747,10 @@ int pluc_read_file(const char *filename)
     else if ( dclImport(&pi2, cl2_on, cl2_dc, filename) != 0 )
     {
       /* combine both functions, consider the case where the output of cl2 is input of cl */
+      //puts("pluc_read_file");
+      //dclShow(&pi2, cl2_on);
       pinfoMerge(&pi, cl_on, &pi2, cl2_on);
+      //dclShow(&pi, cl_on);
     }
     else
     {
@@ -1943,7 +1946,7 @@ int pluc_read_and_merge(void)	// obsolete
 {
   int i;
   pluc_log("Read (files: %d)", cl_file_cnt);
-  
+  //assert(0);
   
   for( i = 0; i < cl_file_cnt; i++ )
   {

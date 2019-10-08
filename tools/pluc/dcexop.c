@@ -311,6 +311,8 @@ static int _dcexToDCL_assign(dcex_type dcex, dcexn n, dclist cl)
 {
   int i, cnt;
   dcexstr xs;
+  
+  
   if ( n->data < DCEXN_STR_OFFSET )
   {
     dcexError(dcex, "%sThe left side of an assignment must be a legal identifier.", dcex->error_prefix);
@@ -327,10 +329,15 @@ static int _dcexToDCL_assign(dcex_type dcex, dcexn n, dclist cl)
     dcexError(dcex, "%sThe left side (%s) of the assignment has no legal target.", dcex->error_prefix, xs->str);
     return 0;
   }
+
+  //printf("_dcexToDCL_assign %s\n", xs->str);
+  
   if ( _dcexToDCL(dcex, n->next, cl) == 0 )
     return 0;
-    
+
+  
   cnt = dclCnt(cl);
+  //printf("_dcexToDCL_assign %s, dclCnt=%d var_idx=%d\n", xs->str, cnt, xs->cube_out_var_index);
   for( i = 0; i < cnt; i++ )
   {
     dcOutSetAll(dcex->pi_to_dcl, dclGet(cl, i), 0);
@@ -430,7 +437,7 @@ int dcexToDCL(dcex_type dcex, pinfo *pi, dclist cl, dcexn n)
   dcex->pi_to_dcl = pi;
   
   _dcexToDCL(dcex, n, cl);
-  
+
   dcex->pi_to_dcl = NULL;
 
   if ( pinfoCopyInLabels(pi, dcex->in_variables) == 0 )
@@ -438,6 +445,9 @@ int dcexToDCL(dcex_type dcex, pinfo *pi, dclist cl, dcexn n)
 
   if ( pinfoCopyOutLabels(pi, dcex->out_variables) == 0 )
     return 0;
+
+  //printf("dcexToDCL 2\n");
+  //dclShow(pi, cl);
 
   return 1;
 }

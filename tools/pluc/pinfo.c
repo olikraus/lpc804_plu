@@ -1433,6 +1433,8 @@ int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
   {
     /* check, whether the output variable exists as an input variable in dest */
     in_pos = b_sl_Find(pi_dest->in_sl, b_sl_GetVal(pi_src->out_sl, j));
+    
+    in_pos = -1;		// case 1 is currently skipped, if the output var exists as input, then it is simply treated as new output
     if ( in_pos >= 0 )
     {
       /* case 1: output exists as input in the destination cube list */
