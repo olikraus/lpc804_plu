@@ -34,7 +34,7 @@ GCCBINPATH:=/usr/bin/
 # Project Information
 
 # The name for the project
-TARGETNAME:=plu_lut
+TARGETNAME:=plu_auto_lut
 
 # The source files of the project
 SRC:=$(wildcard *.c) plu.c

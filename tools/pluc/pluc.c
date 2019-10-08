@@ -1558,15 +1558,17 @@ void pluc_codegen_pre(void)
   pluc_out(cmdline_procname);
   pluc_out("(void)\n");
   pluc_out("{\n");
-  pluc_out("\tuint32_t clkctrl0 = *(uint32_t *)0x40048080UL;   /* backup SYSAHBCLKCTRL0 */\n");
-  pluc_out("\tuint32_t clkctrl1 = *(uint32_t *)0x40048084UL;   /* backup SYSAHBCLKCTRL1 */\n");
+  //pluc_out("\tuint32_t clkctrl0;\n");
+  //pluc_out("\tuint32_t clkctrl1;\n");
+  //pluc_out("\tclkctrl0 = *(uint32_t *)0x40048080UL;   /* backup SYSAHBCLKCTRL0 */\n");
+  //pluc_out("\tclkctrl1 = *(uint32_t *)0x40048084UL;   /* backup SYSAHBCLKCTRL1 */\n");
 }
 
 void pluc_codegen_post(void)
 {
-  pluc_out("\t*(uint32_t *)0x40048080UL = clkctrl0;   /* restore SYSAHBCLKCTRL0 */\n");
-  pluc_out("\t*(uint32_t *)0x40048084UL = clkctrl1;   /* restore SYSAHBCLKCTRL1 */\n");
-  pluc_out("\t/* Note: Ensure to enable the PLU clock for read operation on PLU output registers */\n");
+  //pluc_out("\t*(uint32_t *)0x40048080UL = clkctrl0;   /* restore SYSAHBCLKCTRL0 */\n");
+  //pluc_out("\t*(uint32_t *)0x40048084UL = clkctrl1;   /* restore SYSAHBCLKCTRL1 */\n");
+  //pluc_out("\t/* Note: Ensure to enable the PLU clock for read operation on PLU output registers */\n");
   pluc_out("}\n");
 }
 
