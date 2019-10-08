@@ -12,6 +12,9 @@ set GCC=%GNUARMPATH%\bin\arm-none-eabi-gcc.exe
 set OBJCOPY=%GNUARMPATH%\bin\arm-none-eabi-objcopy.exe
 set CCFLAGS=-mthumb -mcpu=cortex-m0plus -Wall -I. -I..\lpc_chip_804 -I..\common  -Os  -ffunction-sections -fdata-sections -std=gnu99
 set LDFLAGS=-Wl,--gc-sections  -Wl,--undefined=arm_stack_area -Wl,--undefined=__isr_vector -Wl,-Map=%TARGET%.map --specs=nosys.specs -L..\common -T lpc804.ld
+
+..\..\tools\pluc\pluc "LVLSHFT_IN0 <= PIO0_10; PIO0_22 <= LVLSHFT_OUT0; PIO0_15 <= PIO0_2 & PIO0_22;" -oc plu.c -fn plu
+
 set SRC=
 for %%f in (..\lpc_chip_804\*.c) do call set SRC=%%SRC%% %%f
 for %%f in (..\common\*.c) do call set SRC=%%SRC%% %%f
