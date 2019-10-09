@@ -5955,3 +5955,19 @@ int dclGetLiteralCnt(pinfo *pi, dclist cl)
   return lit_cnt;
 }
 
+/*-- dclReplaceInOut ----------------------------------------------------------*/
+/*
+  precondition: the provided out_var exists as input and output
+
+  the output variable must not depend on itself. This case is checked and the
+  function returns with 0
+
+*/
+int dclReplaceInOut(pinfo *pi, dclist cl, int out_var)
+{
+  /* 1. find the input variable */
+  /* 2. extract the out function into a new dcl (same pinfo, dclCopyByOut) */
+  /* 3. check whether the new dcl depends on the same out var */
+  /* 4. calculate the complement with int dclComplementOut(pinfo *pi, int o, dclist cl) */
+  /* 5. use the algoritm in pinfoMerge case 1 to update the original dcl */
+}

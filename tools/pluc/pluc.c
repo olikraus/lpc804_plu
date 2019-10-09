@@ -778,6 +778,8 @@ int pluc_read(void)
       return 0;
   }
 
+  dclShow(&pi, cl_on);
+
   sl = pinfoGetOutLabelList(&pi);
   for( i = 0; i < b_sl_GetCnt(sl); i++ )
     if ( pluc_check_signal(b_sl_GetVal(sl, i)) == 0 )
