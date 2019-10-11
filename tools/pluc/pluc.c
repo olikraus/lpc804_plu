@@ -516,6 +516,28 @@ int levenshtein(const char *s1, const char *s2)
 }
 
 /*==================================================*/
+/* remove a don't care column, which may appear during the replace and map algorithm */
+void pluc_remove_dc(pinfo *pi, dclist cl)
+{
+  int i;
+  
+  i = 0;
+  while( i < pinfoGetInCnt(pi) )
+  {
+    if ( dclIsDCInVar(pi, cl, i) != 0 )
+    {
+      dclDeleteIn(pi, cl, i);
+      pinfoDeleteInLabel(pi, i);      
+    }
+    else
+    {
+      i++;
+    }    
+  }
+}
+
+
+/*==================================================*/
 /*=== init ===*/
 /*==================================================*/
 
@@ -607,7 +629,7 @@ int pluc_init(void)
 /*==================================================*/
 
 
-int pluc_check_signal(const char *s)
+int pluc_check_signal(const char *s, int is_error)
 {
   int distance_min = 30000;
   const char *keyword_min = NULL;
@@ -624,16 +646,22 @@ int pluc_check_signal(const char *s)
   {
     if ( strcmp(b_sl_GetVal(pluc_keywords, i), s) == 0 )
       return 1;
-    distance_curr = levenshtein(b_sl_GetVal(pluc_keywords, i), s);
-    if ( distance_min > distance_curr )
+    if ( is_error )
     {
-      distance_min = distance_curr;
-      keyword_min = b_sl_GetVal(pluc_keywords, i);
+      distance_curr = levenshtein(b_sl_GetVal(pluc_keywords, i), s);
+      if ( distance_min > distance_curr )
+      {
+	distance_min = distance_curr;
+	keyword_min = b_sl_GetVal(pluc_keywords, i);
+      }
     }
   }
-  if ( keyword_min != NULL )
+  if ( is_error )
   {
-    pluc_err("Read: Signal '%s' invalid. Do you mean '%s'? Use 'pluc -listkeywords' to list all valid signal names. ", s, keyword_min);
+    if ( keyword_min != NULL )
+    {
+      pluc_err("Read: Signal '%s' invalid. Do you mean '%s'? Use 'pluc -listkeywords' to list all valid signal names. ", s, keyword_min);
+    }
   }
   return 0;
 }
@@ -778,17 +806,39 @@ int pluc_read(void)
       return 0;
   }
 
+
+  /* try to replace unknown signal names */
   dclShow(&pi, cl_on);
-  dclReplaceAllOut(&pi, cl_on);
+  sl = pinfoGetOutLabelList(&pi);
+  for( i = 0; i <  b_sl_GetCnt(sl); i++ )
+  {
+    if ( pluc_check_signal(b_sl_GetVal(sl, i), 0) == 0 )
+    {
+      pluc_log("Read: Resolveing variable '%s'", b_sl_GetVal(sl, i)); 
+      switch( dclReplaceInOut(&pi, cl_on, i)  )
+      {
+	case 0:
+	  pluc_log("Read: Variable '%s' resolve failed.", b_sl_GetVal(sl, i)); 
+	  break;
+	case -1:
+	  pluc_err("Read: Illegal cyclic dependency for variable '%s'.", b_sl_GetVal(sl, i)); 
+	  break;
+	case -2:
+	  pluc_err("Read: Variable '%s' is used, but is not written/defined.", b_sl_GetVal(sl, i)); 
+	  break;
+      }
+    }
+  }  
+  pluc_remove_dc(&pi, cl_on);
   dclShow(&pi, cl_on);
 
   sl = pinfoGetOutLabelList(&pi);
   for( i = 0; i < b_sl_GetCnt(sl); i++ )
-    if ( pluc_check_signal(b_sl_GetVal(sl, i)) == 0 )
+    if ( pluc_check_signal(b_sl_GetVal(sl, i), 1) == 0 )
       return 0;
   sl = pinfoGetInLabelList(&pi);
   for( i = 0; i < b_sl_GetCnt(sl); i++ )
-    if ( pluc_check_signal(b_sl_GetVal(sl, i)) == 0 )
+    if ( pluc_check_signal(b_sl_GetVal(sl, i), 1) == 0 )
       return 0;
   //b_sl_type pinfoGetOutLabelList(pinfo *pi);
 
@@ -825,26 +875,6 @@ const char *pluc_get_ff_output_name(int pos)
   static char s[32];
   sprintf(s, "FF%d", pos);
   return s;
-}
-
-/* remove a don't care column, which may appear during the map algorithm */
-void pluc_remove_dc(pinfo *pi, dclist cl)
-{
-  int i;
-  
-  i = 0;
-  while( i < pinfoGetInCnt(pi) )
-  {
-    if ( dclIsDCInVar(pi, cl, i) != 0 )
-    {
-      dclDeleteIn(pi, cl, i);
-      pinfoDeleteInLabel(pi, i);      
-    }
-    else
-    {
-      i++;
-    }    
-  }
 }
 
 

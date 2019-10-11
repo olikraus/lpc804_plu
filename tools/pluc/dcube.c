@@ -207,6 +207,21 @@ void dcDeleteIn(pinfo *pi, dcube *c, int pos)
   }
 }
 
+void dcDeleteOut(pinfo *pi, dcube *c, int pos)
+{
+  int i;
+  int s;
+  if ( pi->out_cnt > 0 )
+  {
+    for( i = pos+1; i < pi->out_cnt; i++ )
+    {
+      s = dcGetOut(c, i);
+      dcSetOut(c, i-1, s);
+    }
+    dcSetOut(c, pi->in_cnt-1, 0);  
+  }
+}
+
 
 /*-- dcOutSetAll ------------------------------------------------------------*/
 void dcOutSetAll(pinfo *pi, dcube *c, c_int v)
@@ -2724,6 +2739,16 @@ void dclDeleteIn(pinfo *pi, dclist cl, int pos)
   for( i = 0; i < cnt; i++ )
     dcDeleteIn(pi, dclGet(cl, i), pos);
 }
+
+/*-- dclDeleteIn -----------------------------------------------------------*/
+
+void dclDeleteOut(pinfo *pi, dclist cl, int pos)
+{
+  int i, cnt = dclCnt(cl);
+  for( i = 0; i < cnt; i++ )
+    dcDeleteOut(pi, dclGet(cl, i), pos);
+}
+
 
 /*-- dclDontCareExpand ------------------------------------------------------*/
 int dclDontCareExpand(pinfo *pi, dclist cl)
@@ -5999,7 +6024,7 @@ int dcIntersectionInUnionOut(pinfo *pi, dcube *r, dcube *a, dcube *b)
   1: all ok
   0: memory problem
   -1: recursive dependency
-
+  -2: input only
 
 
 */
@@ -6021,7 +6046,7 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
   /* step 1: find in var */
   in_var_pos = b_sl_Find(pi->in_sl, b_sl_GetVal(pi->out_sl, out_var_pos));
   if ( in_var_pos < 0 )
-    return 0;  /* there is no input variable with the same name, so no replacement possible */
+    return -2;  /* there is no input variable with the same name, so no replacement possible */
  
   
   /* step 2: extract out variable */
@@ -6039,7 +6064,7 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
     if ( in_var_value == 1 || in_var_value  == 2 )
     {
       /* error, the out variable depends on itself: direct recursive dependency --> error */
-      return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
+      return dclDestroyVA(2, cl_out, cl_n_out), -1;
     }
   }
   
@@ -6125,6 +6150,11 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
   dclDeleteCubesWithFlag(pi, cl);	/* delete all cubes, which hab been replaced above */
   
   dclSCC(pi, cl);
+  
+  dclDeleteOut(pi, cl, out_var_pos);	/* this does not adjust pi */
+  pinfoDeleteOutLabel(pi, out_var_pos);		/* this will adjust pi */
+
+
   
   return dclDestroyVA(2, cl_out, cl_n_out), 1;
 }

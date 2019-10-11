@@ -54,6 +54,7 @@ void  dcCopyOutToInRange   (pinfo *pi_dest, dcube *dest, int dest_offset, pinfo 
 void  dcCopyOutToOut       (pinfo *pi_dest, dcube *dest, int dest_offset, pinfo *pi_src, dcube *src);
 void  dcCopyOutToOutRange  (pinfo *pi_dest, dcube *dest, int dest_offset, pinfo *pi_src, dcube *src, int src_offset, int src_cnt);
 void dcDeleteIn		(pinfo *pi, dcube *c, int pos);
+void dcDeleteOut(pinfo *pi, dcube *c, int pos);
 void  dcOutSetAll          (pinfo *pi, dcube *c, c_int v);
 void  dcAllClear           (pinfo *pi, dcube *c);
 void  dcSetTautology       (pinfo *pi, dcube *c);

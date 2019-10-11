@@ -470,6 +470,17 @@ void pinfoDeleteInLabel(pinfo *pi, int pos)
   pinfoSetInCnt(pi, pi->in_cnt - 1);
 }
 
+/*-- pinfoDeleteOutLabel ---------------------------------------------------------*/
+void pinfoDeleteOutLabel(pinfo *pi, int pos)
+{
+  if ( pi->out_sl == NULL )
+    return;		/* do nothing */
+  if ( pi->out_cnt <= pos )
+    return;		/* do nothing */
+  b_sl_Del(pi->out_sl, pos);
+  pinfoSetOutCnt(pi, pi->out_cnt - 1);
+}
+
 
 /*-- pinfoAddOutLabel ---------------------------------------------------------*/
 /* add a out label, if it does not yet exist. return index to it */

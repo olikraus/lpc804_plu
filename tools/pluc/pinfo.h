@@ -219,6 +219,7 @@ int pinfoAddInLabel(pinfo *pi, const char *s);
 void pinfoDeleteInLabel(pinfo *pi, int pos);
 
 int pinfoAddOutLabel(pinfo *pi, const char *s);
+void pinfoDeleteOutLabel(pinfo *pi, int pos);
 
 
 b_sl_type pinfoGetInLabelList(pinfo *pi);
