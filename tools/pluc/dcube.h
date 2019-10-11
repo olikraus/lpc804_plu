@@ -255,6 +255,8 @@ int   dcReadBin            (pinfo *pi, dcube *c, FILE *fp);
    int   dclWriteBin           (pinfo *pi, dclist cl, FILE *fp);
    int   dclReadBin            (pinfo *pi, dclist *cl, FILE *fp);
    int   dclGetLiteralCnt      (pinfo *pi, dclist cl);
+int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos);
+void dclReplaceAllOut(pinfo *pi, dclist cl);
 
 
 /* pinfo.c */

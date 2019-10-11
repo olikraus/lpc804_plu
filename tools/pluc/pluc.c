@@ -779,6 +779,8 @@ int pluc_read(void)
   }
 
   dclShow(&pi, cl_on);
+  dclReplaceAllOut(&pi, cl_on);
+  dclShow(&pi, cl_on);
 
   sl = pinfoGetOutLabelList(&pi);
   for( i = 0; i < b_sl_GetCnt(sl); i++ )

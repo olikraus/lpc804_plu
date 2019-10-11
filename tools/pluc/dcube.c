@@ -4168,10 +4168,10 @@ int dclComplementOut(pinfo *pi, int o, dclist cl)
   dcOutSetAll(pi, c, 0);
   dcSetOut(c, o, 1);
   if ( dclSubtract(pi, a, cl) == 0 )
-    return dclDestroy(cl), 0;
+    return dclDestroy(a), 0;
   if ( dclCopy(pi, cl, a) == 0 )
-    return dclDestroy(cl), 0;
-  return dclDestroy(cl), 1;
+    return dclDestroy(a), 0;
+  return dclDestroy(a), 1;		// 2019: bugfix: need to destroy a instead of cl
 }
 
 
@@ -5956,18 +5956,183 @@ int dclGetLiteralCnt(pinfo *pi, dclist cl)
 }
 
 /*-- dclReplaceInOut ----------------------------------------------------------*/
+int dcIntersectionInUnionOut(pinfo *pi, dcube *r, dcube *a, dcube *b)
+{
+  register int i;
+  register c_int c;
+
+  for( i = 0; i < pi->in_words; i++ )
+  {
+    c = a->in[i] & b->in[i];  /* Problem:      Wie oft kommt 00 vor? */
+    r->in[i] = c;
+    c |= c>>1;                /* Reduktion:    Wie oft kommt x0 vor? */
+    c = ~c;                   /* Invertierung: Wie oft kommt x1 vor? */
+    c &= CUBE_IN_MASK_ZERO;   /* Maskierung:   Wie oft kommt 01 vor? */
+    if ( c > 0 )
+      return 0;
+  }
+
+  if ( pi->out_cnt == 0 )
+    return 1;
+
+  for( i = 0; i < pi->out_words; i++ )
+  {
+    r->out[i] = a->out[i] | b->out[i];
+  }
+    
+  return 1;
+}
+
 /*
+  Description:
+    Replace an input by the output with the same name.
+    For example ./pluc 'PIO0_22 <= a; a <= PIO0_02;'
+    "a" should be removed.
+
+
   precondition: the provided out_var exists as input and output
 
   the output variable must not depend on itself. This case is checked and the
-  function returns with 0
+  function returns with -1
+
+  return values:
+  1: all ok
+  0: memory problem
+  -1: recursive dependency
+
+
 
 */
-int dclReplaceInOut(pinfo *pi, dclist cl, int out_var)
+int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
 {
+  int in_var_pos;
+  int k, m;
+  int in_var_value;
+  int cnt;
+  dclist cl_out, cl_n_out;
+  
   /* 1. find the input variable */
   /* 2. extract the out function into a new dcl (same pinfo, dclCopyByOut) */
   /* 3. check whether the new dcl depends on the same out var */
   /* 4. calculate the complement with int dclComplementOut(pinfo *pi, int o, dclist cl) */
   /* 5. use the algoritm in pinfoMerge case 1 to update the original dcl */
+  /* 6. remove the out_var from the orginal list, if a block becomes invalid (all out is zero) remove it */
+  
+  /* step 1: find in var */
+  in_var_pos = b_sl_Find(pi->in_sl, b_sl_GetVal(pi->out_sl, out_var_pos));
+  if ( in_var_pos < 0 )
+    return 0;  /* there is no input variable with the same name, so no replacement possible */
+ 
+  
+  /* step 2: extract out variable */
+  if ( dclInitVA(2, &cl_out, &cl_n_out) == 0 )
+    return 0;
+
+
+  if ( dclCopyByOut(pi, cl_out, cl, out_var_pos) == 0 )
+    return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
+
+  /* step 3: recursive check */
+  for( k = 0; k < dclCnt(cl_out); k++ )
+  {
+    in_var_value = dcGetIn( dclGet(cl_out, k), in_var_pos );
+    if ( in_var_value == 1 || in_var_value  == 2 )
+    {
+      /* error, the out variable depends on itself: direct recursive dependency --> error */
+      return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
+    }
+  }
+  
+  /* step 4: calculate complement */
+  
+  if ( dclCopy(pi, cl_n_out, cl_out) == 0 )
+    return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
+
+  //dclShow(pi, cl_out);
+  
+  if ( dclComplementOut(pi, out_var_pos, cl_n_out) == 0 )
+    return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
+
+  //if ( dclComplement(pi, cl_n_out) == 0 )
+  //  return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
+
+  //dclShow(pi, cl_n_out);
+  //dclDestroyVA(2, cl_out, cl_n_out);
+  //exit(0);
+
+  
+  /* on set and its complement will be used to replace the input in the destination cube list */
+
+  /* loop over all cubes of the target function and replace the input variable */
+  dclClearFlags(cl);
+  cnt = dclCnt(cl);
+  for( k = 0; k < cnt; k++ )
+  {
+    in_var_value = dcGetIn( dclGet(cl, k), in_var_pos );
+    switch( in_var_value )
+    {
+      case 1:		/* input variable appears negative: use cl_n_out */
+	/* mark the orignal cube for deletion */
+	dclSetFlag(cl, k);		/* the illegal block is marked and will be deleted below */	    
+	for( m = 0; m < dclCnt(cl_n_out); m++ )
+	{	
+	  /* constuct the new cube for the target list */
+	  dcCopy( pi, pi->tmp+16, dclGet(cl, k) );	/* get the current target cube, use tmp store place 16 */
+	  dcSetIn( pi->tmp+16, in_var_pos, 3);		/* make the variable (which should be replaced) a don't care */
+	  
+	  if ( dcIntersectionInUnionOut(pi, pi->tmp+16, pi->tmp+16, dclGet(cl_n_out, m) ) != 0 )
+	  {
+	      dcSetOut( pi->tmp+16, out_var_pos, 0);		// due to the recursive check, this will not have any effect and is not required
+	      if ( dclAdd(pi, cl, pi->tmp+16) < 0 )
+		return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
+	  }
+	}
+	break;
+      case 2:		/* input variable appears positive: use cl_out */
+	/* mark the orignal cube for deletion */
+	dclSetFlag(cl, k);		/* the illegal block is marked and will be deleted below */	    
+	for( m = 0; m < dclCnt(cl_out); m++ )
+	{	
+	  /* constuct the new cube for the target list */
+	  dcCopy( pi, pi->tmp+16, dclGet(cl, k) );	/* get the current target cube, use tmp store place 16 */
+	  dcSetIn( pi->tmp+16, in_var_pos, 3);		/* make the variable (which should be replaced) a don't care */
+	  
+	  if ( dcIntersectionInUnionOut(pi, pi->tmp+16, pi->tmp+16, dclGet(cl_out, m) ) != 0 )
+	  {
+	      dcSetOut( pi->tmp+16, out_var_pos, 0);		// due to the recursive check, this will not have any effect and is not required
+	      if ( dclAdd(pi, cl, pi->tmp+16) < 0 )
+		return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
+	  }
+	}
+	break;
+    }
+  }
+  dclDeleteCubesWithFlag(pi, cl);	/* delete all cubes, which hab been replaced above */
+
+  /* step 6: remove out var */
+  dclClearFlags(cl);
+  for( k = 0; k < dclCnt(cl); k++ )
+  {
+    if ( dcGetOut( dclGet(cl, k), out_var_pos ) != 0 )
+    {
+      dcSetOut( dclGet(cl, k), out_var_pos, 0);		
+      if ( dcIsOutIllegal(pi, dclGet(cl, k)) )
+      {
+	dclSetFlag(cl, k);		/* the illegal block is marked and will be deleted below */	    
+      }      
+    }
+  }
+  dclDeleteCubesWithFlag(pi, cl);	/* delete all cubes, which hab been replaced above */
+  
+  dclSCC(pi, cl);
+  
+  return dclDestroyVA(2, cl_out, cl_n_out), 1;
 }
+
+void dclReplaceAllOut(pinfo *pi, dclist cl)
+{
+  int i;
+  for( i = 0; i <  b_sl_GetCnt(pi->out_sl); i++ )
+    dclReplaceInOut(pi, cl, i);      
+}
+
