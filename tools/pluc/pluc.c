@@ -770,6 +770,7 @@ int pluc_read_file(const char *filename)
 	pluc_err("Read: Error with file '%s'", filename);
 	return 0;
       }
+      pluc_log("Read (BEX): File %s imported, in=%d out=%d", filename, pi2.in_cnt, pi2.out_cnt);
       pinfoMerge(&pi, cl_on, &pi2, cl2_on);      
     }
     else if ( dclImport(&pi2, cl2_on, cl2_dc, filename) != 0 )
@@ -792,7 +793,7 @@ int pluc_read_file(const char *filename)
 int pluc_read(void)
 {
   int i;
-  b_sl_type sl;
+  volatile b_sl_type sl;
   pluc_log("Read (files: %d)", cl_file_cnt);
   
   pinfoDestroy(&pi);
@@ -811,7 +812,8 @@ int pluc_read(void)
   //dclShow(&pi, cl_on);
   
   sl = pinfoGetOutLabelList(&pi);
-  for( i = 0; i <  b_sl_GetCnt(sl); i++ )
+  i = 0;
+  while( i <  b_sl_GetCnt(sl) )
   {
     if ( pluc_check_signal(b_sl_GetVal(sl, i), 0) == 0 )
     {
@@ -820,16 +822,26 @@ int pluc_read(void)
       {
 	case 0:
 	  pluc_log("Read: Variable '%s' resolve failed.", b_sl_GetVal(sl, i)); 
+	  i++;
 	  break;
 	case -1:
 	  pluc_err("Read: Illegal cyclic dependency for variable '%s'.", b_sl_GetVal(sl, i)); 
+	  i++;
 	  break;
 	case -2:
 	  pluc_err("Read: Variable '%s' is used, but is not written/defined.", b_sl_GetVal(sl, i)); 
+	  i++;
+	  break;
+	default:
+	  // do not increment i, because column i was deleted
 	  break;
       }
     }
-  }  
+    else
+    {
+      i++;
+    }
+  }
   pluc_remove_dc(&pi, cl_on);
   //dclShow(&pi, cl_on);
   //exit(0);

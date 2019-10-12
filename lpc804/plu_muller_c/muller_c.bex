@@ -1,0 +1,28 @@
+#
+# muller_c.bex
+#
+# LPC804 plu_muller_c example
+#
+# Route information for the Muller C BMS file
+#
+# This file will connect the inputs of the BMS file to the GPIO Ports
+# of the LPC804
+#
+# Buttons at PIO0_2 and PIO0_10
+# LED at PIO0_15
+
+
+# PIO0_2 and PIO_10 can not be used as inputs at the same time.
+# Use PIO0_22 instead
+
+x <= PIO0_2;
+y <= PIO0_22;
+
+PIO0_15 <= z;
+
+# Connect PIO0_10 to PIO0_22 via LVLSHFT0
+LVLSHFT_IN0 <= PIO0_10;
+PIO0_22 <= LVLSHFT_OUT0;
+
+# Muller C element is a state machine, we need to connect PLU_CLKIN
+PLU_CLKIN <= CLKOUT;
