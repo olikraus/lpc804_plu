@@ -14,7 +14,7 @@ input x 0
 input y 0
 output z 0
 
-0 1 x+ y+ | z+
-1 0 x- y- | z-
+state_z0 state_z1 x+ y+ | z+
+state_z1 state_z0 x- y- | z-
 
 

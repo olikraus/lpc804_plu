@@ -13,16 +13,20 @@
 
 
 # PIO0_2 and PIO_10 can not be used as inputs at the same time.
-# Use PIO0_22 instead
+# Use PIO0_22 instead. PIO0_22 will be connected to PIO0_10 later
 
 x <= PIO0_2;
 y <= PIO0_22;
-
 PIO0_15 <= z;
 
 # Connect PIO0_10 to PIO0_22 via LVLSHFT0
+
 LVLSHFT_IN0 <= PIO0_10;
 PIO0_22 <= LVLSHFT_OUT0;
 
-# Muller C element is a state machine, we need to connect PLU_CLKIN
+# Muller C element is a state machine, we need to connect PLU_CLKIN to a clock source
+# In this case we just use CLKOUT. "pluc" will route CLKOUT to PLU_CLKIN via PIO0_30
+# Additionally CLKOUT is enabled and configured 
+
 PLU_CLKIN <= CLKOUT;
+
