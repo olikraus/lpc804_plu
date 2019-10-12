@@ -6,6 +6,7 @@
  * Assums buttons at PIO0_2 and PIO0_10
  * Implements Muller-C state machine, inputs "x" (PIO0_2) and "y" (PIO0_10), output "z" (PIO0_15)
  * The clock signal for the PLU state machine is derived from the system clock (availanle via CLKOUT)
+ * Remember, that the buttons are low active!
 
 ![muller_c_bms.png](muller_c_bms.png)
 
