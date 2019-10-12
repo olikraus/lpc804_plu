@@ -754,7 +754,9 @@ int pluc_read_file(const char *filename)
     {
       fsm_Clear(fsm);
 
-      fsm_Import(fsm, filename);
+      //fsm_Import(fsm, filename);
+
+	  fsm_ReadBMS(fsm, filename);
       pluc_build_fsm();
       //dclShow(fsm->pi_machine, fsm->cl_machine);
       pluc_log("Read (BMS): FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->in_cnt, fsm->out_cnt);

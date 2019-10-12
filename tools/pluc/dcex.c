@@ -1463,7 +1463,7 @@ static char *dcex_filename_to_string(const char *filename)
     free(s);
     return NULL;
   }
-  fp = fopen(s, "r");
+  fp = fopen(s, "rb"); // "rb" required for windows
   if ( fp == NULL )
   {
     free(s);
@@ -1479,6 +1479,9 @@ static char *dcex_filename_to_string(const char *filename)
     
   if ( fread(content, buf.st_size, 1, fp) != 1 )
   {
+    //printf("st_size: %d\n", buf.st_size);
+	//perror("dcex_filename_to_string");
+	//printf("%s\n", content);
     free(content);
     fclose(fp);
     return NULL;
