@@ -218,7 +218,7 @@ void dcDeleteOut(pinfo *pi, dcube *c, int pos)
       s = dcGetOut(c, i);
       dcSetOut(c, i-1, s);
     }
-    dcSetOut(c, pi->in_cnt-1, 0);  
+    dcSetOut(c, pi->out_cnt-1, 0);  
   }
 }
 
@@ -2740,7 +2740,7 @@ void dclDeleteIn(pinfo *pi, dclist cl, int pos)
     dcDeleteIn(pi, dclGet(cl, i), pos);
 }
 
-/*-- dclDeleteIn -----------------------------------------------------------*/
+/*-- dclDeleteOut -----------------------------------------------------------*/
 
 void dclDeleteOut(pinfo *pi, dclist cl, int pos)
 {
@@ -6132,6 +6132,8 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
 	break;
     }
   }
+  
+  
   dclDeleteCubesWithFlag(pi, cl);	/* delete all cubes, which hab been replaced above */
 
   /* step 6: remove out var */
@@ -6147,13 +6149,20 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
       }      
     }
   }
+
   dclDeleteCubesWithFlag(pi, cl);	/* delete all cubes, which hab been replaced above */
   
   dclSCC(pi, cl);
+
+  
+  //puts("dclReplaceInOut step 6 result:");
+  //dclShow(pi, cl);
   
   dclDeleteOut(pi, cl, out_var_pos);	/* this does not adjust pi */
   pinfoDeleteOutLabel(pi, out_var_pos);		/* this will adjust pi */
 
+  //puts("dclReplaceInOut result:");
+  //dclShow(pi, cl);
 
   
   return dclDestroyVA(2, cl_out, cl_n_out), 1;

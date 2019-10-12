@@ -808,13 +808,14 @@ int pluc_read(void)
 
 
   /* try to replace unknown signal names */
-  dclShow(&pi, cl_on);
+  //dclShow(&pi, cl_on);
+  
   sl = pinfoGetOutLabelList(&pi);
   for( i = 0; i <  b_sl_GetCnt(sl); i++ )
   {
     if ( pluc_check_signal(b_sl_GetVal(sl, i), 0) == 0 )
     {
-      pluc_log("Read: Resolveing variable '%s'", b_sl_GetVal(sl, i)); 
+      pluc_log("Read: Resolving variable '%s'", b_sl_GetVal(sl, i)); 
       switch( dclReplaceInOut(&pi, cl_on, i)  )
       {
 	case 0:
@@ -830,7 +831,9 @@ int pluc_read(void)
     }
   }  
   pluc_remove_dc(&pi, cl_on);
-  dclShow(&pi, cl_on);
+  //dclShow(&pi, cl_on);
+  //exit(0);
+  
 
   sl = pinfoGetOutLabelList(&pi);
   for( i = 0; i < b_sl_GetCnt(sl); i++ )
