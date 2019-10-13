@@ -34,7 +34,7 @@ GCCBINPATH:=/usr/bin/
 # Project Information
 
 # The name for the project
-TARGETNAME:=muller_c
+TARGETNAME:=count
 
 # The source files of the project
 SRC:=$(wildcard *.c) plu.c

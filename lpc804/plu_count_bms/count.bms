@@ -1,0 +1,46 @@
+#
+# count.bms
+#
+# Implement a binary counter 00, 01, 10, 11 with reset
+#
+# LPC804 count example
+#
+# Inputs: count, reset
+# Output: led0, led1
+# 
+
+name count
+# assume low active buttons, so default is 1
+input reset 1
+input count 1
+# default output is 00
+output led0 0
+output led1 0
+
+# normal count up
+c00p c00n count- 
+c00n c01p count+ | led0+
+c01p c01n count- 
+c01n c10p count+ | led0- led1+
+c10p c10n count- 
+c10n c11p count+ | led0+ led1+
+c11p c11n count- 
+c11n c00p count+ | led0- led1-
+
+# reset behavior: from any state goto "rst" state when the reset button is pressed
+c00p rstp reset- 
+c00n rstn reset-
+c01p rstp reset- | led0-
+c01n rstn reset- | led0-
+c10p rstp reset- | led1-
+c10n rstn reset- | led1-
+c11p rstp reset- | led0- led1-
+c11n rstn reset- | led0- led1-
+
+# go back to the first count state, if reset button is released (goes up)
+rstp c00p reset+ 
+rstn c00n reset+
+rstn rstp count+
+
+
+

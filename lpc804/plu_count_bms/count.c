@@ -1,12 +1,11 @@
 /*
 
-  muller_c.c
+  count.c
 
   Status of button at PIO0_2 will be output PIO0_15 and PIO0_9
   
   This example assumes a button at PIO0_2 and LEDs at PIO0_9 and PIO0_15
   
-  Code generation: pluc muller_c.bex muller_c.bms -oc plu.c -fn plu
   
 */
 

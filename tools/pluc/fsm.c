@@ -1535,6 +1535,9 @@ int fsm_EncodeSimple(fsm_type fsm)
   
   if ( fsm_SetCodeWidth(fsm, log_2_state_cnt, FSM_CODE_DFF_EXTRA_OUTPUT) == 0 )
     return 0;
+  
+  if ( log_2_state_cnt == 0 )	/* 2019: added */
+    return 1;
     
   c = &(pi->tmp[9]);
   dcOutSetAll(pi, c, 0);
