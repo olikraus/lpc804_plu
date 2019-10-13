@@ -9,40 +9,40 @@
 # Output: led0, led1
 # 
 
-name c
+name count
 # assume low active buttons, so default is 1
 input r 1
 input c 1
-# default output is 00
+# default output is 0 for both LEDs
 output led0 0
 output led1 0
 
-# normal c up
-c00p c00n c- 
-c00n c01p c+ | led0+
-c01p c01n c- 
-c01n c10p c+ | led0- led1+
-c10p c10n c- 
-c10n c11p c+ | led0+ led1+
-c11p c11n c- 
-c11n c00p c+ | led0- led1-
+# normal count up
+cnt0p cnt0n c- 
+cnt0n cnt1p c+ | led0+
+cnt1p cnt1n c- 
+cnt1n cnt2p c+ | led0- led1+
+cnt2p cnt2n c- 
+cnt2n cnt3p c+ | led0+ led1+
+cnt3p cnt3n c- 
+cnt3n cnt0p c+ | led0- led1-
 
 # reset behavior: from any state goto "rstp" or "rstn" state when the r button is pressed
 # also handle the case, when c button is still pressed and additionally r is pressed ("rstn" state)
-c00p rstp r- | led0- led1-
-c00n rstn r- | led0- led1-
-c01p rstp r- | led0- led1-
-c01n rstn r- | led0- led1-
-c10p rstp r- | led0- led1-
-c10n rstn r- | led0- led1-
-c11p rstp r- | led0- led1-
-c11n rstn r- | led0- led1-
+cnt0p rstp r- | led0- led1-
+cnt0n rstn r- | led0- led1-
+cnt1p rstp r- | led0- led1-
+cnt1n rstn r- | led0- led1-
+cnt2p rstp r- | led0- led1-
+cnt2n rstn r- | led0- led1-
+cnt3p rstp r- | led0- led1-
+cnt3n rstn r- | led0- led1-
 
-# go back to the first c state, if r button is released (goes up)
-rstp c00p r+ | led0- led1-
-rstn c00n r+ | led0- led1-
+# go back to the first c state, if r button is released (r+)
+rstp cnt0p r+ | led0- led1-
+rstn cnt0n r+ | led0- led1-
 
-# as long as "r" is pressed, "c" will just jump between the two reset states
+# as long as "r" is pressed (r-), "c" will just jump between the two reset states
 rstn rstp c+ | led0- led1-
 rstp rstn c- | led0- led1-
 
