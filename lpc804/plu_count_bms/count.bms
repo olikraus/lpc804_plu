@@ -40,7 +40,7 @@ cnt3n rstn r- | led0- led1-
 
 # go back to the first c state, if r button is released (r+)
 rstp cnt0p r+ | led0- led1-
-rstn cnt0n r+ | led0- led1-
+rstn cnt0n r+ | led0- led1-  
 
 # as long as "r" is pressed (r-), "c" will just jump between the two reset states
 rstn rstp c+ | led0- led1-
