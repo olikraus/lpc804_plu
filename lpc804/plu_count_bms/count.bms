@@ -5,42 +5,46 @@
 #
 # LPC804 count example
 #
-# Inputs: count, reset
+# Inputs: c (count up), r (reset)
 # Output: led0, led1
 # 
 
-name count
+name c
 # assume low active buttons, so default is 1
-input reset 1
-input count 1
+input r 1
+input c 1
 # default output is 00
 output led0 0
 output led1 0
 
-# normal count up
-c00p c00n count- 
-c00n c01p count+ | led0+
-c01p c01n count- 
-c01n c10p count+ | led0- led1+
-c10p c10n count- 
-c10n c11p count+ | led0+ led1+
-c11p c11n count- 
-c11n c00p count+ | led0- led1-
+# normal c up
+c00p c00n c- 
+c00n c01p c+ | led0+
+c01p c01n c- 
+c01n c10p c+ | led0- led1+
+c10p c10n c- 
+c10n c11p c+ | led0+ led1+
+c11p c11n c- 
+c11n c00p c+ | led0- led1-
 
-# reset behavior: from any state goto "rst" state when the reset button is pressed
-c00p rstp reset- 
-c00n rstn reset-
-c01p rstp reset- | led0-
-c01n rstn reset- | led0-
-c10p rstp reset- | led1-
-c10n rstn reset- | led1-
-c11p rstp reset- | led0- led1-
-c11n rstn reset- | led0- led1-
+# reset behavior: from any state goto "rstp" or "rstn" state when the r button is pressed
+# also handle the case, when c button is still pressed and additionally r is pressed ("rstn" state)
+c00p rstp r- 
+c00n rstn r-
+c01p rstp r- | led0-
+c01n rstn r- | led0-
+c10p rstp r- | led1-
+c10n rstn r- | led1-
+c11p rstp r- | led0- led1-
+c11n rstn r- | led0- led1-
 
-# go back to the first count state, if reset button is released (goes up)
-rstp c00p reset+ 
-rstn c00n reset+
-rstn rstp count+
+# go back to the first c state, if r button is released (goes up)
+rstp c00p r+ 
+rstn c00n r+
+
+# as long as "r" is pressed, "c" will just jump between the two reset states
+rstn rstp c+
+rstp rstn c-
 
 
 

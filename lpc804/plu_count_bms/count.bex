@@ -1,23 +1,24 @@
 #
-# muller_c.bex
+# count.bex
 #
-# LPC804 plu_muller_c example
+# LPC804 count example
 #
-# Route information for the Muller C BMS file
+# Route information for the count BMS file
 #
 # This file will connect the inputs of the BMS file to the GPIO Ports
 # of the LPC804
 #
 # Buttons at PIO0_2 and PIO0_10
-# LED at PIO0_15
+# LEDs at PIO0_9 and PIO0_15
 
 
 # PIO0_2 and PIO_10 can not be used as inputs at the same time.
 # Use PIO0_22 instead. PIO0_22 will be connected to PIO0_10 later
 
-x <= PIO0_2;
-y <= PIO0_22;
-PIO0_15 <= z;
+r <= PIO0_2;
+c <= PIO0_22;
+PIO0_9 <= led0;
+PIO0_15 <= led1;
 
 # Connect PIO0_10 to PIO0_22 via LVLSHFT0
 
