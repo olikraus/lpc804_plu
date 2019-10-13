@@ -2061,7 +2061,7 @@ cl_entry_struct cl_list[] =
 {
   { CL_TYP_STRING,  "oc-write C code", c_file_name, 1024 },
   { CL_TYP_STRING,  "fn-name of the generated c function", cmdline_procname, 1024 },
-  { CL_TYP_LONG,  "clkdiv-flip flop clock division (1..255)", &cmdline_clkdiv, 0 },
+  { CL_TYP_LONG,  "clkdiv-flip flop clock division (CLKOUTDIV, 1..255)", &cmdline_clkdiv, 0 },
   { CL_TYP_ON,      "listmap-list wire mapping", &cmdline_listmap,  0 },
   { CL_TYP_ON,      "listkeywords-list allowed signal names", &cmdline_listkeywords,  0 },
   { CL_TYP_STRING,  "testoutroute-Find a route from given output to a LUT", cmdline_output, 1024 },
