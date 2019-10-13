@@ -1691,6 +1691,8 @@ void pluc_codegen_gpio_input(int pin)
   pluc_out(s);
   sprintf(s, "\t*(uint32_t *)0x%08xUL |= (2UL<<3);    /* PIO0_%d IOCON: Enable pull-up */\n", 0x040044000+lpc804_pin_to_iocon_offset[pin], pin);
   pluc_out(s);  
+  //sprintf(s, "\t*(uint32_t *)0x%08xUL |= (1UL<<5);    /* PIO0_%d IOCON: Enable Hysteresis */\n", 0x040044000+lpc804_pin_to_iocon_offset[pin], pin);
+  //pluc_out(s);  
   sprintf(s, "\t*(uint32_t *)0xA0002400UL |= (1UL<<%d);    /* PIO0_%d GPIO DIRCLRP: Setup as input */\n", pin, pin);  
   pluc_out(s);
 }
@@ -1953,7 +1955,7 @@ void pluc_codegen_clock(void)
     sprintf(s, "\t*(uint32_t *)0x400480F0UL = 1;  /*SYSCON CLKOUTSEL*/\n");
     pluc_out(s);
     
-    sprintf(s, "\t/* CLKOUT clock divider register: Divide by 1 */\n");
+    sprintf(s, "\t/* CLKOUT clock divider register: Divide by %ld */\n", cmdline_clkdiv);
     pluc_out(s);
     sprintf(s, "\t*(uint32_t *)0x400480F4UL = %ld;  /*SYSCON CLKOUTDIV*/\n", cmdline_clkdiv);
     pluc_out(s);

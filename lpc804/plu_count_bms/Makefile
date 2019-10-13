@@ -109,8 +109,8 @@ LDLIBS:=--specs=nosys.specs -L$(LDSCRIPTDIR) -T $(LDSCRIPT)
 all: $(DISNAME) $(HEXNAME)
 	$(SIZE) $(ELFNAME)
 
-plu.c: muller_c.bex muller_c.bms
-	../../tools/pluc/pluc muller_c.bex muller_c.bms -oc plu.c -fn plu
+plu.c: count.bex count.bms
+	../../tools/pluc/pluc count.bex count.bms -clkdiv 150 -oc plu.c -fn plu
 
 
 .PHONY: upload

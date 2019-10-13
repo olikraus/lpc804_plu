@@ -29,22 +29,22 @@ c11n c00p c+ | led0- led1-
 
 # reset behavior: from any state goto "rstp" or "rstn" state when the r button is pressed
 # also handle the case, when c button is still pressed and additionally r is pressed ("rstn" state)
-c00p rstp r- 
-c00n rstn r-
-c01p rstp r- | led0-
-c01n rstn r- | led0-
-c10p rstp r- | led1-
-c10n rstn r- | led1-
+c00p rstp r- | led0- led1-
+c00n rstn r- | led0- led1-
+c01p rstp r- | led0- led1-
+c01n rstn r- | led0- led1-
+c10p rstp r- | led0- led1-
+c10n rstn r- | led0- led1-
 c11p rstp r- | led0- led1-
 c11n rstn r- | led0- led1-
 
 # go back to the first c state, if r button is released (goes up)
-rstp c00p r+ 
-rstn c00n r+
+rstp c00p r+ | led0- led1-
+rstn c00n r+ | led0- led1-
 
 # as long as "r" is pressed, "c" will just jump between the two reset states
-rstn rstp c+
-rstp rstn c-
+rstn rstp c+ | led0- led1-
+rstp rstn c- | led0- led1-
 
 
 
