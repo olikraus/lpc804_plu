@@ -110,7 +110,7 @@ all: $(DISNAME) $(HEXNAME)
 	$(SIZE) $(ELFNAME)
 
 plu.c: count.bex count.bms
-	../../tools/pluc/pluc count.bex count.bms -clkdiv 150 -oc plu.c -fn plu
+	../../tools/pluc/pluc count.bex count.bms -lposc -clkdiv 250 -oc plu.c -fn plu
 
 
 .PHONY: upload

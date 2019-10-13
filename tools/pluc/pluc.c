@@ -108,6 +108,7 @@ int pluc_is_FF_used = 0;		// whether FF are used or not
 
 char c_file_name[1024] = "";
 long cmdline_clkdiv = 1;
+int cmdline_lposc = 0;
 int cmdline_listmap = 0;
 int cmdline_listkeywords = 0;
 char cmdline_output[1024] = "";
@@ -1950,10 +1951,23 @@ void pluc_codegen_clock(void)
   }
   if ( lpc804_wire_table[i].from != NULL )
   {
-    sprintf(s, "\t/* CLKOUT clock source select register: Select main clock */\n");
-    pluc_out(s);
-    sprintf(s, "\t*(uint32_t *)0x400480F0UL = 1;  /*SYSCON CLKOUTSEL*/\n");
-    pluc_out(s);
+    
+    if ( cmdline_lposc == 0 )
+    {
+      sprintf(s, "\t/* CLKOUT clock source select register: Select main clock */\n");
+      pluc_out(s);
+      sprintf(s, "\t*(uint32_t *)0x400480F0UL = 1;  /*SYSCON CLKOUTSEL*/\n");
+      pluc_out(s);
+    }
+    else
+    {
+      sprintf(s, "\t/* Enable LP-OSC and select LP OSC for CLKOUT */\n");
+      pluc_out(s);
+      sprintf(s, "\t*(uint32_t *)0x40048238UL &= ~(1<<6); /* Clear bit 6 in SYSCON PDRUNCFG to enable LP-OSC */\n");
+      pluc_out(s);
+      sprintf(s, "\t*(uint32_t *)0x400480F0UL = 4;  /* SYSCON CLKOUTSEL: Select LP-OSC */\n");
+      pluc_out(s);
+    }
     
     sprintf(s, "\t/* CLKOUT clock divider register: Divide by %ld */\n", cmdline_clkdiv);
     pluc_out(s);
@@ -2062,6 +2076,7 @@ cl_entry_struct cl_list[] =
   { CL_TYP_STRING,  "oc-write C code", c_file_name, 1024 },
   { CL_TYP_STRING,  "fn-name of the generated c function", cmdline_procname, 1024 },
   { CL_TYP_LONG,  "clkdiv-flip flop clock division (CLKOUTDIV, 1..255)", &cmdline_clkdiv, 0 },
+  { CL_TYP_ON,      "lposc-use low power osc instead of main_clk as clock for any flip-flops", &cmdline_lposc,  0 },
   { CL_TYP_ON,      "listmap-list wire mapping", &cmdline_listmap,  0 },
   { CL_TYP_ON,      "listkeywords-list allowed signal names", &cmdline_listkeywords,  0 },
   { CL_TYP_STRING,  "testoutroute-Find a route from given output to a LUT", cmdline_output, 1024 },
