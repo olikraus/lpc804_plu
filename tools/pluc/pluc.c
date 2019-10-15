@@ -523,7 +523,8 @@ void pluc_remove_dc(pinfo *pi, dclist cl)
   int i;
   
   i = 0;
-  while( i < pinfoGetInCnt(pi) )
+  while( i < pinfoGetInCnt(pi) && pinfoGetInCnt(pi) >= 2 )
+  //while( i < pinfoGetInCnt(pi)  )
   {
     if ( dclIsDCInVar(pi, cl, i) != 0 )
     {

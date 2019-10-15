@@ -1912,11 +1912,14 @@ int dclAdd(pinfo *pi, dclist cl, dcube *c)
       return -1;
     assert(cl->max > cl->cnt);
   }
+  
+  assert(cl->max > cl->cnt);
 
   {  
     register dcube *d;
     int i;
     d = cl->list+cl->cnt;
+    
     for( i = 0; i < pi->in_out_words_min; i++ )
     {
       d->in[i] = c->in[i];
