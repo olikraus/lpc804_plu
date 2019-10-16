@@ -96,8 +96,8 @@
 /* tmp 14: fsm_bmm_GetStableStartCondition, fsm_check_hazard_free_edge */
 /*         dcl_is_output_compatible(), fsm_GetAllInEdgeOutput */
 /*         xbm_BuildStateStateTransfers (xbmfn.c) */
-/* tmp 15: gspq_IFD_minterm, xbm_find_reset_state, xbm_ess_check_ess_hazard */
-/* tmp 16: hfp_AddFromToTransition, xbm_ess_check_ess_hazard, pinfoMerge, pinfoCopyByOut*/
+/* tmp 15: gspq_IFD_minterm, xbm_find_reset_state, xbm_ess_check_ess_hazard, dclReplaceInOut */
+/* tmp 16: hfp_AddFromToTransition, xbm_ess_check_ess_hazard, pinfoMerge, pinfoCopyByOut, dclReplaceInOut*/
 /* tmp 17: hfp_AddFromToTransition, xbm_ess_check_ess_hazard, pluc */
 /* stack1: dclTautologyCof, dclPrimesCof */
 /* stack2: dclTautologyCof, dclPrimesCof */

@@ -758,7 +758,7 @@ int pluc_read_file(const char *filename)
 
       //fsm_Import(fsm, filename);
 
-	  fsm_ReadBMS(fsm, filename);
+      fsm_ReadBMS(fsm, filename);
       pluc_build_fsm();
       //dclShow(fsm->pi_machine, fsm->cl_machine);
       pluc_log("Read (BMS): FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->in_cnt, fsm->out_cnt);
@@ -862,7 +862,10 @@ int pluc_read(void)
   //b_sl_type pinfoGetOutLabelList(pinfo *pi);
 
   
+  pluc_log("Read: Input: %s", b_sl_ToStr(pinfoGetInLabelList(&pi), ", "));
+  pluc_log("Read: Output: %s", b_sl_ToStr(pinfoGetOutLabelList(&pi), ", "));
   pluc_log("Read: Done (overall problem in=%d out=%d)", pi.in_cnt, pi.out_cnt);
+
   
   //dclShow(&pi, cl_on);
 
@@ -926,6 +929,8 @@ int pluc_add_lut(pinfo *pi, dclist cl)
     //pluc_lut_list[pluc_lut_cnt].user_out_name = NULL;
     pluc_lut_list[pluc_lut_cnt].is_placed = 0;
 
+    pluc_log("Map: Added LUT%d, inputs: %d (%s), output cnt: %d", pluc_lut_cnt, pluc_lut_list[pluc_lut_cnt].pi.in_cnt, b_sl_ToStr(pinfoGetInLabelList(&(pluc_lut_list[pluc_lut_cnt].pi)), ", "), pluc_lut_list[pluc_lut_cnt].pi.out_cnt);
+
     pluc_lut_cnt++;
   }
   else
@@ -941,6 +946,8 @@ int pluc_add_lut(pinfo *pi, dclist cl)
     pluc_remove_dc(&(pluc_lut_list[pluc_ff_cnt].pi), pluc_lut_list[pluc_ff_cnt].dcl);
 
     pluc_lut_list[pluc_ff_cnt].is_placed = 0;
+
+    pluc_log("Map: Added FF%d, inputs: %d (%s), output cnt: %d", pluc_ff_cnt, pi->in_cnt, b_sl_ToStr(pinfoGetInLabelList(pi), ", "), pi->out_cnt);
     
     pluc_ff_cnt++;
     
@@ -971,10 +978,12 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
       none_dc_cnt++;
   }
   
+  
   /* if the number of variables (which are not DC) is lower than 6, then we are done */
   if ( none_dc_cnt <= 5 )
   {
     //dclShow(pi, cl);
+    assert( none_dc_cnt > 0 );
     if ( dclCnt(cl) == 1 )
     {
       if ( dcGetIn( dclGet(cl, 0), 0 ) == 2 )		/* identity: input equals output */
@@ -1004,7 +1013,7 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
     
     if ( pluc_add_lut(pi, cl) == 0 )
       return 0;
-    pluc_log("Map: Leaf fn (in-cnt %d) added to LUT table (index %d), output '%s'", none_dc_cnt, pluc_lut_cnt-1, pinfoGetOutLabel(pi, 0));
+    //pluc_log("Map: Leaf fn (in-cnt %d) added to LUT table (index %d), output '%s'", none_dc_cnt, pluc_lut_cnt-1, pinfoGetOutLabel(pi, 0));
     
     //printf("leaf (depth=%d)\n", depth);
     //dclShow(pi, cl);
@@ -1132,11 +1141,18 @@ int pluc_map(void)
     /* remove dc column, so that we can more easier detect direct routes */
     pluc_remove_dc(&pi2, cl2_on);
     
-    /* start the simplification */
-    if ( pluc_map_cof(&pi2, cl2_on, cof, 0) == 0 )
+    if ( dclCnt(cl2_on) == 0 )
     {
-      pluc_log("Map failed (pluc_map_cof)");
-      return 0;
+      pluc_log("Map WARNING: Unspecified/empty output variable %s found.", pinfoGetOutLabel(&pi, out_var));
+    }      
+    else
+    {
+      /* start the simplification */
+      if ( pluc_map_cof(&pi2, cl2_on, cof, 0) == 0 )
+      {
+	pluc_log("Map failed (pluc_map_cof)");
+	return 0;
+      }
     }
   }
   return 1;
@@ -1533,6 +1549,7 @@ int pluc_route_lut_input(void)
   for( i = 0; i < pluc_lut_cnt; i++ )
   {
     pi = &(pluc_lut_list[i].pi);
+    pluc_log("Route: LUT%d with input(s) %s", i, b_sl_ToStr(pinfoGetInLabelList(pi), ", "));
     for( j = 0; j < pinfoGetInCnt(pi); j++ )
     {
 	

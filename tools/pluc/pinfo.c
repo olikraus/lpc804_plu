@@ -1406,6 +1406,8 @@ int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
   int out_pos;
   int *in_map;
   int val;
+  int old_cl_dest_cnt;
+  //int new_cl_dest_cnt;
   dclist src_on_cl, src_off_cl;
 
 
@@ -1419,6 +1421,7 @@ int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
     return dclDestroyVA(2, src_on_cl, src_off_cl), 0;
 
   /* add the inputs from src to dest, consider existing signals and fill the in_map table */
+  old_cl_dest_cnt = pinfoGetInCnt(pi_dest);
   for( i = 0; i <  b_sl_GetCnt(pi_src->in_sl); i++ )
   {
     in_pos = pinfoAddInLabel( pi_dest, b_sl_GetVal(pi_src->in_sl, i) );
@@ -1426,6 +1429,22 @@ int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
       return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
     in_map[i] = in_pos;
   }  
+  //new_cl_dest_cnt = pinfoGetInCnt(pi_dest);
+  
+  //printf("pinfoMerge: src=%d, dest: %d->%d, inwords=%d\n", pi_src->in_cnt, old_cl_dest_cnt, new_cl_dest_cnt, pi_dest->in_words);
+
+  /* increase memory for new inputs */
+  for( i = 0; i < cl_dest->max; i++ )
+  {
+    dcAdjustByPinfo(pi_dest, dclGet(cl_dest, i));
+  }
+  
+  /* set the new inputs to don't care */
+  for( i = 0; i < dclCnt(cl_dest); i++ )
+  {
+    for( j = old_cl_dest_cnt; j < CUBE_SIGNALS_PER_IN_WORD*pi_dest->in_words; j++ )
+      dcSetIn(dclGet(cl_dest, i), j, 3);
+  }
   
   /* loop over the out variables of cl_src */
   /* there are three cases: */
@@ -1530,6 +1549,9 @@ int pinfoMerge(pinfo *pi_dest, dclist cl_dest, pinfo *pi_src, dclist cl_src)
       
       if ( out_pos < 0 )
 	return free(in_map), dclDestroyVA(2, src_on_cl, src_off_cl), 0;
+      
+      assert(out_pos < 32);		/* if the output is larger than 32, then we need to adjust the cube output memory similar to the inputs */
+      /* this is still todo, for pluc on the LPC804, i assume, the number of outputs will stay below 32, so just issue an assert for now... */
       
       /* extract the on set out of the source function */
       if ( dclCopyByOut(pi_src, src_on_cl, cl_src, j) == 0 )

@@ -5989,6 +5989,8 @@ int dcIntersectionInUnionOut(pinfo *pi, dcube *r, dcube *a, dcube *b)
   register int i;
   register c_int c;
 
+  //printf("dcIntersectionInUnionOut: %s AND %s\n", dcToStr(pi, a, " ", ""), dcToStr2(pi, b, " ", "")); 
+  
   for( i = 0; i < pi->in_words; i++ )
   {
     c = a->in[i] & b->in[i];  /* Problem:      Wie oft kommt 00 vor? */
@@ -5997,7 +5999,9 @@ int dcIntersectionInUnionOut(pinfo *pi, dcube *r, dcube *a, dcube *b)
     c = ~c;                   /* Invertierung: Wie oft kommt x1 vor? */
     c &= CUBE_IN_MASK_ZERO;   /* Maskierung:   Wie oft kommt 01 vor? */
     if ( c > 0 )
+    {
       return 0;
+    }
   }
 
   if ( pi->out_cnt == 0 )
@@ -6037,6 +6041,7 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
   int k, m;
   int in_var_value;
   int cnt;
+  int replacements_cnt;
   dclist cl_out, cl_n_out;
   
   /* 1. find the input variable */
@@ -6051,6 +6056,7 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
   if ( in_var_pos < 0 )
     return -2;  /* there is no input variable with the same name, so no replacement possible */
  
+  //printf("dclReplaceInOut: var '%s' in %d out %d\n", b_sl_GetVal(pi->out_sl, out_var_pos), in_var_pos, out_var_pos);
   
   /* step 2: extract out variable */
   if ( dclInitVA(2, &cl_out, &cl_n_out) == 0 )
@@ -6087,6 +6093,11 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
   //dclShow(pi, cl_n_out);
   //dclDestroyVA(2, cl_out, cl_n_out);
   //exit(0);
+  //printf("dclReplaceInOut: Extracted function (normal)\n");
+  //dclShow(pi, cl_out);
+  //printf("dclReplaceInOut: Extracted function (complement)\n");
+  //dclShow(pi, cl_n_out);
+
 
   
   /* on set and its complement will be used to replace the input in the destination cube list */
@@ -6094,12 +6105,14 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
   /* loop over all cubes of the target function and replace the input variable */
   dclClearFlags(cl);
   cnt = dclCnt(cl);
+  replacements_cnt = 0;
   for( k = 0; k < cnt; k++ )
   {
     in_var_value = dcGetIn( dclGet(cl, k), in_var_pos );
     switch( in_var_value )
     {
       case 1:		/* input variable appears negative: use cl_n_out */
+	replacements_cnt++;
 	/* mark the orignal cube for deletion */
 	dclSetFlag(cl, k);		/* the illegal block is marked and will be deleted below */	    
 	for( m = 0; m < dclCnt(cl_n_out); m++ )
@@ -6108,15 +6121,16 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
 	  dcCopy( pi, pi->tmp+16, dclGet(cl, k) );	/* get the current target cube, use tmp store place 16 */
 	  dcSetIn( pi->tmp+16, in_var_pos, 3);		/* make the variable (which should be replaced) a don't care */
 	  
-	  if ( dcIntersectionInUnionOut(pi, pi->tmp+16, pi->tmp+16, dclGet(cl_n_out, m) ) != 0 )
+	  if ( dcIntersectionInUnionOut(pi, pi->tmp+15, pi->tmp+16, dclGet(cl_n_out, m) ) != 0 )
 	  {
-	      dcSetOut( pi->tmp+16, out_var_pos, 0);		// due to the recursive check, this will not have any effect and is not required
-	      if ( dclAdd(pi, cl, pi->tmp+16) < 0 )
+	      dcSetOut( pi->tmp+15, out_var_pos, 0);		// due to the recursive check, this will not have any effect and is not required
+	      if ( dclAdd(pi, cl, pi->tmp+15) < 0 )
 		return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
 	  }
 	}
 	break;
       case 2:		/* input variable appears positive: use cl_out */
+	replacements_cnt++;
 	/* mark the orignal cube for deletion */
 	dclSetFlag(cl, k);		/* the illegal block is marked and will be deleted below */	    
 	for( m = 0; m < dclCnt(cl_out); m++ )
@@ -6125,17 +6139,23 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
 	  dcCopy( pi, pi->tmp+16, dclGet(cl, k) );	/* get the current target cube, use tmp store place 16 */
 	  dcSetIn( pi->tmp+16, in_var_pos, 3);		/* make the variable (which should be replaced) a don't care */
 	  
-	  if ( dcIntersectionInUnionOut(pi, pi->tmp+16, pi->tmp+16, dclGet(cl_out, m) ) != 0 )
+	  if ( dcIntersectionInUnionOut(pi, pi->tmp+15, pi->tmp+16, dclGet(cl_out, m) ) != 0 )
 	  {
-	      dcSetOut( pi->tmp+16, out_var_pos, 0);		// due to the recursive check, this will not have any effect and is not required
-	      if ( dclAdd(pi, cl, pi->tmp+16) < 0 )
-		return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
+	    dcSetOut( pi->tmp+15, out_var_pos, 0);		// due to the recursive check, this will not have any effect and is not required
+	    if ( dclAdd(pi, cl, pi->tmp+15) < 0 )
+	      return dclDestroyVA(2, cl_out, cl_n_out), 0; 	    
 	  }
 	}
 	break;
     }
   }
   
+  //assert( replacements_cnt > 0 );
+  
+
+  //printf("dclReplaceInOut step 5 result, replacements %d:\n", replacements_cnt);
+  //dclShow(pi, cl);
+  //exit(0);
   
   dclDeleteCubesWithFlag(pi, cl);	/* delete all cubes, which hab been replaced above */
 
@@ -6160,6 +6180,7 @@ int dclReplaceInOut(pinfo *pi, dclist cl, int out_var_pos)
   
   //puts("dclReplaceInOut step 6 result:");
   //dclShow(pi, cl);
+  //exit(0);
   
   dclDeleteOut(pi, cl, out_var_pos);	/* this does not adjust pi */
   pinfoDeleteOutLabel(pi, out_var_pos);		/* this will adjust pi */
