@@ -1002,7 +1002,7 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
 	}
 	else
 	{
-	  pluc_log("Map: in or out not 1");	  
+	  pluc_log("Map: in or out not 1, fallback to LUT construction");	  
 	}
       }
       else if (dcGetIn( dclGet(cl, 0), 0 ) == 1 ) /* inverted: output <= !input */
@@ -1028,6 +1028,11 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
       break;
     }
   }
+  
+  if ( pinfoCntDCList(pi, cl, pi->tmp+0) == 0 )
+    return 0;		/* memory issue */
+  i = pinfoGetSplittingInVar(pi);
+
 
   if ( i >= pi->in_cnt )
     return 0;
@@ -1043,8 +1048,6 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   {
     pinfo *pi_connect = pinfoOpen();
     dclist cl_connect;
-      
-    
 
     if ( pinfoAddOutLabel(pi_connect, pinfoGetOutLabel(pi, 0)) < 0 )
       return pinfoClose(pi_connect), 0;
@@ -1147,6 +1150,8 @@ int pluc_map(void)
     }      
     else
     {
+      pluc_log("Map: Output variable '%s'", pinfoGetOutLabel(&pi, out_var));
+      //dclShow(&pi2, cl2_on);
       /* start the simplification */
       if ( pluc_map_cof(&pi2, cl2_on, cof, 0) == 0 )
       {

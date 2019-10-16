@@ -257,6 +257,7 @@ void pinfoBTreeFinish(pinfo *pi);
 int pinfoBTreeStart(pinfo *pi);
 void pinfoBTreeEnd(pinfo *pi);
 
+int pinfoGetMinDCCntVar(pinfo *pi);
 int pinfoGetSplittingInVar(pinfo *pi);
 
 
