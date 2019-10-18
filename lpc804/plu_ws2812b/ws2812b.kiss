@@ -1,3 +1,14 @@
+#
+# ws2812b.kiss
+#
+# 4-bit output FSM
+# FSM clock speed: 0.4us = 15/6 MHz
+#
+# data: Output signal to ws2812b controller
+# active: internal output, signals activity 1: FSM is active, 0: FSM is idle
+# Go signal is only monitored during FSM idle state.
+# 0-1 transition of the go signal will start the FSM
+#
 .i 5
 .o 2
 
@@ -14,23 +25,23 @@
 ----- b0s1h b0s2 01
 
 # bit 1
------ b0s2 b1s0 11
+----- b0s2 b1s0  11
 --1-- b1s0 b1s1h 11
 --0-- b1s0 b1s1l 01
 ----- b1s1l b1s2 01
 ----- b1s1h b1s2 01
 
 # bit 2
------ b1s2 b2s0 11
+----- b1s2 b2s0  11
 ---1- b2s0 b2s1h 11
 ---0- b2s0 b2s1l 01
 ----- b2s1l b2s2 01
 ----- b2s1h b2s2 01
 
 # bit 3
------ b2s2 b3s0 11
-----1 b3s0 b3s1h 11
-----0 b3s0 b3s1l 01
+----- b2s2 b3s0   11
+----1 b3s0 b3s1h  11
+----0 b3s0 b3s1l  01
 ----- b3s1l reset 00
 ----- b3s1h reset 00
 

@@ -1398,34 +1398,40 @@ int pluc_calc_route_chain(const char *s, int is_in_to_out)
 int _pluc_calc_from_to_sub(const char *from, const char *to, int depth)
 {
   int i = 0;
+  const char *f;
   //pluc_log("from_to: %s-->%s depth: %d", from, to, depth);
 
   //pluc_log("from_to: %s-->%s", from, to);
-  while( lpc804_wire_table[i].from != NULL )
+  f = lpc804_wire_table[i].from;
+  while( f != NULL )
   {
-    if ( lpc804_wire_table[i].is_visited == 0 && lpc804_wire_table[i].is_rd_blocked == 0 && lpc804_wire_table[i].is_wr_blocked == 0  )
+    if ( *f == *from )  // performance optimization
     {
-      if ( strcmp(lpc804_wire_table[i].from, from) == 0 )
+      if ( lpc804_wire_table[i].is_visited == 0 && lpc804_wire_table[i].is_rd_blocked == 0 && lpc804_wire_table[i].is_wr_blocked == 0  )
       {
-	if ( strcmp(lpc804_wire_table[i].to, to) == 0 )
+	if ( strcmp(f, from) == 0 )
 	{
-	  /* found leaf node */
-	  pluc_route_chain_list[pluc_route_chain_cnt++] = i;
-	  //pluc_log("found from_to: %s-->%s", from, to);
-	  return 1;
+	  if ( strcmp(lpc804_wire_table[i].to, to) == 0 )
+	  {
+	    /* found leaf node */
+	    pluc_route_chain_list[pluc_route_chain_cnt++] = i;
+	    //pluc_log("found from_to: %s-->%s", from, to);
+	    return 1;
+	  }
+	  lpc804_wire_table[i].is_visited = 1;
+	  //pluc_log("consider from_to: %s-->%s", lpc804_wire_table[i].from, lpc804_wire_table[i].to);
+	  if ( _pluc_calc_from_to_sub(lpc804_wire_table[i].to, to, depth+1) != 0 )
+	  {
+	    pluc_route_chain_list[pluc_route_chain_cnt++] = i;
+	    //pluc_log("found sub from_to: %s-->%s", from, to);
+	    return 1;
+	  }
+	  lpc804_wire_table[i].is_visited = 0;
 	}
-	lpc804_wire_table[i].is_visited = 1;
-	//pluc_log("consider from_to: %s-->%s", lpc804_wire_table[i].from, lpc804_wire_table[i].to);
-	if ( _pluc_calc_from_to_sub(lpc804_wire_table[i].to, to, depth+1) != 0 )
-	{
-	  pluc_route_chain_list[pluc_route_chain_cnt++] = i;
-	  //pluc_log("found sub from_to: %s-->%s", from, to);
-	  return 1;
-	}
-	lpc804_wire_table[i].is_visited = 0;
       }
     }
     i++;
+    f = lpc804_wire_table[i].from;
   }
   return 0;
 }

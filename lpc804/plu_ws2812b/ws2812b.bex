@@ -1,12 +1,30 @@
-go <= PIO0_2;
-b0 <= PIO0_3;
-b1 <= PIO0_4;
-b2 <= PIO0_5;
-b3 <= PIO0_8;
-PIO0_15 <= data;
-PIO0_16 <= active;
+# 
+# ws2812b.bex
+#
+# Only a limited number of pins can be used for INPUT:
+# PIO0_0 ... PIO0_5
+# PIO0_8 ... PIO0_13
+# PIO0_17 ... PIO0_22
 
-#PLU_CLKIN <= CLKOUT;
+# Outputs:
+# PIO0_7 ... PIO0_21
+# PIO0_23 ... PIO0_30
+
+# 
+# For the TSSOP20:
+# go is connected to PIO0_17 
+# data is connected to PIO0_0 
+# All other pins are connected to PIOs which are not available on the TSSOP20 package
+
+go <= PIO0_17;
+b0 <= PIO0_19;
+b1 <= PIO0_20;
+b2 <= PIO0_21;
+b3 <= PIO0_22;
+
+PIO0_0 <= data;
+PIO0_23 <= active;
+
 
 PLU_CLKIN <= CLKOUT;
 
