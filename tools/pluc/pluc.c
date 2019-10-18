@@ -111,6 +111,7 @@ long cmdline_clkdiv = 1;
 int cmdline_lposc = 0;
 int cmdline_listmap = 0;
 int cmdline_listkeywords = 0;
+int cmdline_xrst = 0;		// generate reset for IOCON, GPIO und SWM
 char cmdline_output[1024] = "";
 char cmdline_input[1024] = "";
 char cmdline_procname[1024] = "plu";
@@ -1657,14 +1658,29 @@ void pluc_codegen_post(void)
 void pluc_codegen_init(void)
 {
   
-  pluc_out("\t*(uint32_t *)0x40048084UL &= ~(1UL<<5);   /* Disable PLU Clock */\n");
+  //pluc_out("\t*(uint32_t *)0x40048084UL &= ~(1UL<<5);   /* Disable PLU Clock */\n");
+  pluc_out("\t*(uint32_t *)0x40048084UL |= (1UL<<5);   /* Enable PLU Clock */\n");
   pluc_out("\t*(uint32_t *)0x4004808CUL &= ~(1UL<<5);   /* Reset PLU */\n");
   pluc_out("\t*(uint32_t *)0x4004808CUL |= (1UL<<5);   /* Clear Reset PLU */\n");
-  pluc_out("\t*(uint32_t *)0x40048084UL |= (1UL<<5);   /* Enable PLU Clock */\n");
   
   pluc_out("\t*(uint32_t *)0x40048080UL |= (1UL<<6);   /* Enable GPIO0 Clock */\n");
+  if ( cmdline_xrst )
+  {
+    pluc_out("\t*(uint32_t *)0x40048088UL &= ~(1UL<<6);   /* Reset GPIO0 */\n");
+    pluc_out("\t*(uint32_t *)0x40048088UL |= (1UL<<6);   /* Clear Reset GPIO0 */\n");
+  }
   pluc_out("\t*(uint32_t *)0x40048080UL |= (1UL<<7);   /* Enable SWM Clock */\n");
+  if ( cmdline_xrst )
+  {
+    pluc_out("\t*(uint32_t *)0x40048088UL &= ~(1UL<<7);   /* Reset SWM */\n");
+    pluc_out("\t*(uint32_t *)0x40048088UL |= (1UL<<7);   /* Clear Reset SWM */\n");
+  }
   pluc_out("\t*(uint32_t *)0x40048080UL |= (1UL<<18);   /* Enable IOCON Clock */\n");
+  if ( cmdline_xrst )
+  {
+    pluc_out("\t*(uint32_t *)0x40048088UL &= ~(1UL<<18);   /* Reset IOCON */\n");
+    pluc_out("\t*(uint32_t *)0x40048088UL |= (1UL<<18);   /* Clear Reset IOCON */\n");
+  }
   
   
   
@@ -2105,6 +2121,8 @@ cl_entry_struct cl_list[] =
   { CL_TYP_STRING,  "oc-write C code", c_file_name, 1024 },
   { CL_TYP_STRING,  "fn-name of the generated c function", cmdline_procname, 1024 },
   { CL_TYP_LONG,  "clkdiv-flip flop clock division (CLKOUTDIV, 1..255)", &cmdline_clkdiv, 0 },
+  
+  { CL_TYP_ON,      "xrst-generate reset code for SWM, IOCON and GPIO", &cmdline_xrst,  0 },
   { CL_TYP_ON,      "lposc-use low power osc instead of main_clk as clock for any flip-flops", &cmdline_lposc,  0 },
   { CL_TYP_ON,      "listmap-list wire mapping", &cmdline_listmap,  0 },
   { CL_TYP_ON,      "listkeywords-list allowed signal names", &cmdline_listkeywords,  0 },

@@ -3,13 +3,13 @@
   ws2812b.c
 
   
+  go <= PIO0_17;
   b0 <= PIO0_19;
   b1 <= PIO0_20;
   b2 <= PIO0_21;
   b3 <= PIO0_22;
 
-  go <= PIO0_17;
-  PIO0_0 <= data;
+  PIO0_16 <= data;
   PIO0_23 <= active;
 
 */
@@ -79,21 +79,42 @@ int __attribute__ ((noinline)) main(void)
   SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
 
   
+  GPIOInit();
+  Enable_Periph_Clock(CLK_IOCON);
+  Enable_Periph_Clock(CLK_SWM);
+  
+  
   plu();		/* plu() will enable GPIO0 clock */
 
 
   /*
     go <= PIO0_17;
-    PIO0_0 <= data;
+
+    PIO0_16 <= data;
     PIO0_23 <= active;
   */
   GPIOSetDir( PORT0, 15, OUTPUT);
- 
+
+
+  LPC_IOCON->PIO0_17 &= IOCON_MODE_MASK;
+  
+  GPIOSetDir( PORT0, 17, OUTPUT);
+  GPIOSetDir( PORT0, 19, OUTPUT);
+  GPIOSetDir( PORT0, 20, OUTPUT);
+  GPIOSetDir( PORT0, 21, OUTPUT);
+  GPIOSetDir( PORT0, 22, OUTPUT);
+
+    for(;;)
+    {
+      LPC_GPIO_PORT->B0[17] = 0;
+      LPC_GPIO_PORT->B0[17] = 1;
+    }
+    
   for(;;)
   {
     while ( LPC_GPIO_PORT->B0[23] != 0 )
       ;
-    output_4bits(0x5);
+    output_4bits(0xf);
     LPC_GPIO_PORT->B0[17] = 1;
     while ( LPC_GPIO_PORT->B0[23] == 0 )
       ;

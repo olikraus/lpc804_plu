@@ -22,7 +22,7 @@ b1 <= PIO0_20;
 b2 <= PIO0_21;
 b3 <= PIO0_22;
 
-PIO0_0 <= data;
+PIO0_16 <= data;
 PIO0_23 <= active;
 
 
