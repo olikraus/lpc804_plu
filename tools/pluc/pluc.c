@@ -1771,12 +1771,17 @@ void pluc_codegen_gpio(void)
       }
       i++;
     }  
-    
-    if ( is_output )	// also for both in&output
-      pluc_codegen_gpio_output(pin);
-    else if ( is_input )
+
+    /* if a GPIO pin is input for another internal function, then it will be forced to be an input pin */
+    /* in other words: If a GPIO is input or both (input and output), there is no choice, it must be */
+    /* configired as input: https://github.com/olikraus/lpc804_plu/tree/master/lpc804/plu_sw_input */
+
+    if ( is_input )	// also for both in&output
       pluc_codegen_gpio_input(pin);
+    else if ( is_output )
+      pluc_codegen_gpio_output(pin);
   }
+    
 }
 
 void pluc_out_regop(pluc_regop_t *regop)
