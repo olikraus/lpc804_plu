@@ -20,5 +20,19 @@ The example in this folder will demonstrate this:
    * changing the inverter for PIO0_2
    * changing the inverter for PIO0_10
    
+Use case: A PLU logic block requires input from the microcontroller:
+ 1. Connect the PLU Input to a GPIO port
+ 2. Configure pullup for this GPIO port (direction does not matter, it is forced to input by the PLU Input assginment)
+ 3. Modify the inverter function status instead of the GPIO value:
+
+| Input | Inverter | PLU Input |
+|---|---|---|
+| Pull-Up | off | Logical One |
+| Pull-Up | on | Logical Zero |
+| Pull-Down | off | Logical Zero |
+| Pull-Down | on | Logical One |
+
+
+
 
 ![lpc804_blink_schematic.png](../blink/lpc804_blink_schematic.png)
