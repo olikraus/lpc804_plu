@@ -16,14 +16,14 @@
 # data is connected to PIO0_0 
 # All other pins are connected to PIOs which are not available on the TSSOP20 package
 
-go <= PIO0_17;
+go <= PIO0_18;
 b0 <= PIO0_19;
-b1 <= PIO0_20;
-b2 <= PIO0_21;
-b3 <= PIO0_22;
+#b1 <= PIO0_20;
+#b2 <= PIO0_21;
+#b3 <= PIO0_22;
 
 PIO0_16 <= data;
-PIO0_23 <= active;
+PIO0_17 <= active;
 
 
 PLU_CLKIN <= CLKOUT;

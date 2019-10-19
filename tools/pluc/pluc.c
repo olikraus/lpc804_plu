@@ -115,6 +115,8 @@ int cmdline_xrst = 0;		// generate reset for IOCON, GPIO und SWM
 char cmdline_output[1024] = "";
 char cmdline_input[1024] = "";
 char cmdline_procname[1024] = "plu";
+int cmdline_dbg = 0;
+int cmdline_mis = 0;
 
 FILE *c_fp = NULL;
 
@@ -681,8 +683,10 @@ int pluc_build_fsm(void)
     is_fbo: is not used any more
     is_old: If the new state minimizer fails, use the old method
   */
-  if( fsm_MinimizeStates(fsm, /* is_fbo=*/ 0, /* is_old=*/ 0) == 0 )	
-    return 0;
+  
+  if ( cmdline_mis )
+    if( fsm_MinimizeStates(fsm, /* is_fbo=*/ 0, /* is_old=*/ 0) == 0 )	
+      return 0;
 
   if ( fsm_GetGroupCnt(fsm) > 0 )
   {
@@ -744,13 +748,18 @@ int pluc_read_file(const char *filename)
     {
       fsm_Clear(fsm);
 
-      fsm_Import(fsm, filename);
+      fsm_ReadKISS(fsm, filename);
       pluc_build_fsm();
       //dclShow(fsm->pi_machine, fsm->cl_machine);
       pluc_log("Read (KISS): FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->in_cnt, fsm->out_cnt);
       //pluc_log("Read: FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->pi_machine->in_cnt, fsm->pi_machine->out_cnt);
       pinfoMerge(&pi, cl_on, fsm->pi_machine, fsm->cl_machine);
       //dclShow(&pi, cl_on);
+
+      if ( cmdline_dbg )
+      {
+	dclShow(fsm->pi_machine, fsm->cl_machine);
+      }
       
     }
     else if ( pluc_is_extension(filename, ".bms") != 0 )
@@ -763,6 +772,12 @@ int pluc_read_file(const char *filename)
       pluc_build_fsm();
       //dclShow(fsm->pi_machine, fsm->cl_machine);
       pluc_log("Read (BMS): FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->in_cnt, fsm->out_cnt);
+      
+      if ( cmdline_dbg )
+      {
+	dclShow(fsm->pi_machine, fsm->cl_machine);
+      }
+      
       //pluc_log("Read: FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->pi_machine->in_cnt, fsm->pi_machine->out_cnt);
       pinfoMerge(&pi, cl_on, fsm->pi_machine, fsm->cl_machine);
       //dclShow(&pi, cl_on);
@@ -776,6 +791,11 @@ int pluc_read_file(const char *filename)
 	return 0;
       }
       pluc_log("Read (BEX): File %s imported, in=%d out=%d", filename, pi2.in_cnt, pi2.out_cnt);
+      if ( cmdline_dbg )
+      {
+	dclShow(&pi2, cl2_on);
+      }
+      
       pinfoMerge(&pi, cl_on, &pi2, cl2_on);      
     }
     else if ( dclImport(&pi2, cl2_on, cl2_dc, filename) != 0 )
@@ -785,12 +805,19 @@ int pluc_read_file(const char *filename)
       //dclShow(&pi2, cl2_on);
       pinfoMerge(&pi, cl_on, &pi2, cl2_on);
       //dclShow(&pi, cl_on);
+      
+      pluc_log("Read (generic): File %s imported, in=%d out=%d", filename, pi2.in_cnt, pi2.out_cnt);
+      if ( cmdline_dbg )
+      {
+	dclShow(&pi2, cl2_on);
+      }
     }
     else
     {
       pluc_err("Read: Error with file/expression '%s'.", filename);
       return 0;
     }
+
     
     return 1;
 }
@@ -814,7 +841,11 @@ int pluc_read(void)
 
 
   /* try to replace unknown signal names */
-  //dclShow(&pi, cl_on);
+  if ( cmdline_dbg )
+  {
+    pluc_log("Read: File read & merge done");
+    dclShow(&pi, cl_on);
+  }
   
   sl = pinfoGetOutLabelList(&pi);
   i = 0;
@@ -848,8 +879,10 @@ int pluc_read(void)
     }
   }
   pluc_remove_dc(&pi, cl_on);
-  //dclShow(&pi, cl_on);
-  //exit(0);
+  if ( cmdline_dbg )
+  {
+    dclShow(&pi, cl_on);
+  }
   
 
   sl = pinfoGetOutLabelList(&pi);
@@ -2123,14 +2156,18 @@ int pluc(int is_merge)
 
 cl_entry_struct cl_list[] =
 {
+  { CL_TYP_GROUP, "Code Generation", NULL, 0},
   { CL_TYP_STRING,  "oc-write C code", c_file_name, 1024 },
   { CL_TYP_STRING,  "fn-name of the generated c function", cmdline_procname, 1024 },
+  { CL_TYP_ON,      "mis-activate state minization (may not work with some KISS files)", &cmdline_mis,  0 },
   { CL_TYP_LONG,  "clkdiv-flip flop clock division (CLKOUTDIV, 1..255)", &cmdline_clkdiv, 0 },
-  
   { CL_TYP_ON,      "xrst-generate reset code for SWM, IOCON and GPIO", &cmdline_xrst,  0 },
   { CL_TYP_ON,      "lposc-use low power osc instead of main_clk as clock for any flip-flops", &cmdline_lposc,  0 },
-  { CL_TYP_ON,      "listmap-list wire mapping", &cmdline_listmap,  0 },
+  { CL_TYP_GROUP, "Information", NULL, 0},
   { CL_TYP_ON,      "listkeywords-list allowed signal names", &cmdline_listkeywords,  0 },
+  { CL_TYP_GROUP, "PLUC Internals", NULL, 0},
+  { CL_TYP_ON,      "dbg-output additional debug information", &cmdline_dbg,  0 },
+  { CL_TYP_ON,      "listmap-list wire mapping", &cmdline_listmap,  0 },
   { CL_TYP_STRING,  "testoutroute-Find a route from given output to a LUT", cmdline_output, 1024 },
   { CL_TYP_STRING,  "testinroute-Find a route from given input to a LUT", cmdline_input, 1024 },
   CL_ENTRY_LAST

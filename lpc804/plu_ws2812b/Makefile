@@ -110,7 +110,7 @@ all: $(DISNAME) $(HEXNAME)
 	$(SIZE) $(ELFNAME)
 
 plu.c: ws2812b.bex ws2812b.kiss
-	../../tools/pluc/pluc ws2812b.bex ws2812b.kiss -oc plu.c -fn plu -clkdiv 6 -xrst
+	../../tools/pluc/pluc ws2812b.bex ws2812b.kiss -oc plu.c -fn plu -clkdiv 200 -xrst
 
 
 .PHONY: upload

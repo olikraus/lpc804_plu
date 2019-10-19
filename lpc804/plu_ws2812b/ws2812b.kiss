@@ -9,43 +9,23 @@
 # Go signal is only monitored during FSM idle state.
 # 0-1 transition of the go signal will start the FSM
 #
-.i 5
+.i 2
 .o 2
 
-.ilb go b0 b1 b2 b3
+.ilb go b0
 .ob data active
 
 .r reset
 
 # bit 0
-1---- reset b0s0 11
--1--- b0s0 b0s1h 11
--0--- b0s0 b0s1l 01
------ b0s1l b0s2 01
------ b0s1h reset 01
+1- reset b0s0 11
+-1 b0s0 b0s1h 11
+-0 b0s0 b0s1l 01
+-- b0s1l reset 00
+-- b0s1h reset 00
 
-# bit 1
------ b0s2 b1s0  11
---1-- b1s0 b1s1h 11
---0-- b1s0 b1s1l 01
------ b1s1l b1s2 01
------ b1s1h b1s2 01
-
-# bit 2
------ b1s2 b2s0  11
----1- b2s0 b2s1h 11
----0- b2s0 b2s1l 01
------ b2s1l b2s2 01
------ b2s1h b2s2 01
-
-# bit 3
------ b2s2 b3s0   11
-----1 b3s0 b3s1h  11
-----0 b3s0 b3s1l  01
------ b3s1l reset 00
------ b3s1h reset 00
 
 # wait for go transition
-0---- reset reset 00
+0- reset reset 00
 
 

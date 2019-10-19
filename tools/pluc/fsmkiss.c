@@ -177,7 +177,14 @@ static int fsm_ReadKISSFP(fsm_type fsm, FILE *fp)
     else
     {
       is_pinfo_init = 1;
-      fsm_ReadKISSLine(fsm, s);
+      if ( fsm_ReadKISSLine(fsm, s) == 0 )
+      {
+	fsm_Log(fsm, "IMPORT: Failed for KISS line '%s'.", s);
+      }
+      else
+      {
+	//fsm_Log(fsm, "IMPORT: Line '%s'.", s);
+      }
     }
   }
   return fsm_ExpandUniversalNodeByName(fsm, "*");
