@@ -5,9 +5,9 @@
    GPIO pin is configured input.
  * Because the GPIO port status can be changed only for outputs and because
    the GPIO is automatically forced to be input (see previos point): Writing a GPIO
-   in value will not work
+   input value to an internal function will not work.
  * The only way to change the input value to an internal function connected to
-   a GPIO port is by changing the pullup/donw and/or by using the inverter function.
+   a GPIO port is changing the pullup/donw and/or by using the inverter function.
    
 The example in this folder will demonstrate this:
 
