@@ -9,25 +9,18 @@
 # Go signal is only monitored during FSM idle state.
 # 0-1 transition of the go signal will start the FSM
 #
-.i 2
-.o 2
 
-.ilb go b0
-.ob data active
+.ilb enable
+.ob pwm
 
-.r reset
+.r wait
 
-# bit 0
-1- reset b0s0 11
--1 b0s0 b0s1h 11
--0 b0s0 b0s1l 01
--- b0s1l wait 00
--- b0s1h wait 00
-
-
-# wait for go transition
-1- wait wait 00
-0- wait reset 00
-0- reset reset 00
-
+1 wait	a 	0
+1 a 	h 	1
+0 a 	l 	0
+- h 	z	0
+- l 	z	0
+1 z 	a	0
+0 z 	wait 	0
+0 wait	wait 	0
 
