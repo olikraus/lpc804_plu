@@ -1,4 +1,4 @@
-# test for the WS2812b protocol
+# Test for the WS2812b protocol
 
  * USB UART Converter is connected to pins 6 and 19 of the LPC804
  * This example will use the LED at pin PIO0_15 (data out) and PIO0_9 (active)

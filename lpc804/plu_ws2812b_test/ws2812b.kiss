@@ -1,8 +1,7 @@
 #
 # ws2812b.kiss
 #
-# 4-bit output FSM
-# FSM clock speed: 0.4us = 15/6 MHz
+# Test for the WS2812b protocol
 #
 # data: Output signal to ws2812b controller
 # active: internal output, signals activity 1: FSM is active, 0: FSM is idle
