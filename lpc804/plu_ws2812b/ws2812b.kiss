@@ -21,11 +21,13 @@
 1- reset b0s0 11
 -1 b0s0 b0s1h 11
 -0 b0s0 b0s1l 01
--- b0s1l reset 00
--- b0s1h reset 00
+-- b0s1l wait 00
+-- b0s1h wait 00
 
 
 # wait for go transition
+1- wait wait 00
+0- wait reset 00
 0- reset reset 00
 
 

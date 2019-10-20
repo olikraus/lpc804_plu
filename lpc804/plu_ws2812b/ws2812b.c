@@ -120,6 +120,12 @@ int __attribute__ ((noinline)) main(void)
 
   for(;;)
   {
+    LPC_IOCON->PIO0_18 &= ~(1<<6);
+    delay_system_ticks(200*2);
+    LPC_IOCON->PIO0_18 |= (1<<6);
+    delay_system_ticks(200*2);
+    
+    /*
     while ( LPC_GPIO_PORT->B0[17] != 0 )
       ;
     output_4bits(0x5);
@@ -129,7 +135,7 @@ int __attribute__ ((noinline)) main(void)
       ;
     //LPC_GPIO_PORT->B0[18] = 0;
     LPC_IOCON->PIO0_18 |= (1<<6);
-    
+    */
     if ( sys_tick_irq_cnt & 1 )
     {
       LPC_GPIO_PORT->B0[15] = 0;

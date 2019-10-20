@@ -12,8 +12,8 @@
 
 # 
 # For the TSSOP20:
-# go is connected to PIO0_17 
-# data is connected to PIO0_0 
+# go is connected to PIO0_18 
+# data is connected to PIO0_16 
 # All other pins are connected to PIOs which are not available on the TSSOP20 package
 
 go <= PIO0_18;
