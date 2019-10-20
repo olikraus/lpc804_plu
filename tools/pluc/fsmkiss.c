@@ -87,6 +87,12 @@ static int fsm_ReadKISSLine(fsm_type fsm, char *s)
   fsm_skipspace(&s);
   s = dcSetAllByStr(fsm->pi_output, 0, fsm->out_cnt, c_output_on, c_output_dc, s);
   dcCopyIn(fsm->pi_output, c_output_on, c_cond_on);
+
+  if ( c_output_on->out == NULL )
+  {
+    fsm_Log(fsm, "FSM: Output specification not availanle, line ignored");
+    return 0;
+  }
   
   /* last bit is always 1, because we need to know all conditions, including */
   /* those conditions with zero output */
@@ -139,6 +145,12 @@ static int fsm_ReadKISSFP(fsm_type fsm, FILE *fp)
         /* input label names */
         if ( b_sl_ImportByStr(fsm->input_sl, s+5, " \t\n\r", "") == 0 )
           return 0;
+	if ( fsm->in_cnt < b_sl_GetCnt(fsm->input_sl) )
+	{
+	  if ( fsm_SetInCnt(fsm, b_sl_GetCnt(fsm->input_sl)) == 0 )
+	    return 0;	  
+	}
+	
       }  
       else if ( strncmp(s, ".olb ", 5) == 0 )
       {
@@ -146,12 +158,22 @@ static int fsm_ReadKISSFP(fsm_type fsm, FILE *fp)
         /* output label names */
         if ( b_sl_ImportByStr(fsm->output_sl, s+5, " \t\n\r", "") == 0 )
           return 0;
+	if ( fsm->out_cnt <  b_sl_GetCnt(fsm->output_sl) )
+	{
+	  if ( fsm_SetOutCnt(fsm, b_sl_GetCnt(fsm->output_sl)) == 0 )
+	    return 0;
+	}
       }
       else if ( strncmp(s, ".ob ", 4) == 0 )
       {
         /* output label names */
         if ( b_sl_ImportByStr(fsm->output_sl, s+4, " \t\n\r", "") == 0 )
           return 0;
+	if ( fsm->out_cnt <  b_sl_GetCnt(fsm->output_sl) )
+	{
+	  if ( fsm_SetOutCnt(fsm, b_sl_GetCnt(fsm->output_sl)) == 0 )
+	    return 0;
+	}
       }
       else if ( strncmp(s, ".reset ", 7) == 0 )
       {
@@ -172,6 +194,7 @@ static int fsm_ReadKISSFP(fsm_type fsm, FILE *fp)
     }
     else if ( s[0] == '.' )
     {
+      fsm_Log(fsm, "IMPORT: KISS command ignored '%s'.", s);
       /* ignore */
     }
     else

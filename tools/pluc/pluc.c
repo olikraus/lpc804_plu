@@ -749,6 +749,12 @@ int pluc_read_file(const char *filename)
       fsm_Clear(fsm);
 
       fsm_ReadKISS(fsm, filename);
+      
+      if ( cmdline_dbg )
+      {
+	fsm_Show(fsm);
+      }
+      
       pluc_build_fsm();
       //dclShow(fsm->pi_machine, fsm->cl_machine);
       pluc_log("Read (KISS): FSM state bits=%d in=%d out=%d", fsm->code_width, fsm->in_cnt, fsm->out_cnt);

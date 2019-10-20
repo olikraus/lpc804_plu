@@ -1,0 +1,32 @@
+#
+# freq_div.kiss
+#
+# Divide frequency by three (three states, s1, s2, s3)
+# "pwm" output is one for s3 and reset state
+# "pwm" output has a 33% duty (s1 off, s2 off, s3 on)
+# "reset" state is entered if "enable" is 0
+# During "reset" the "pwm" output is always 1
+#
+# BEX Configuration: "enable <= PIO0_10; PIO0_15 <= pwm;"
+#
+# Button at PIO0_10 ("enable") not pressed: LED at 33% brightness
+# Button at PIO0_10 ("enable") pressed: LED at 100% brightness
+# 
+# pluc options: -lposc -clkdiv 250
+#	--> PWM frequency will be 4000Hz
+
+
+.ilb enable
+.ob pwm
+
+.r reset
+
+1 reset	s1 	0
+1 s1 	s2 	0
+0 s1 	reset 	1
+1 s2 	s3	1
+0 s2 	reset 	1
+1 s3 	s1	0
+0 s3 	reset 	1
+0 reset	reset 	1
+

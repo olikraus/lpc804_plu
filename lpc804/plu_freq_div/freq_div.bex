@@ -1,0 +1,19 @@
+# 
+# freq_div.bex
+#
+# Only a limited number of pins can be used for INPUT:
+# PIO0_0 ... PIO0_5
+# PIO0_8 ... PIO0_13
+# PIO0_17 ... PIO0_22
+
+# Outputs:
+# PIO0_7 ... PIO0_21
+# PIO0_23 ... PIO0_30
+
+
+enable <= PIO0_10;
+PIO0_15 <= pwm;
+
+
+PLU_CLKIN <= CLKOUT;
+

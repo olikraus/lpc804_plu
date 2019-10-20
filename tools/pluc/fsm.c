@@ -1350,7 +1350,7 @@ void fsm_Show(fsm_type fsm)
   while( fsm_LoopNodes(fsm, &pos) != 0 )
   {
     n = fsm_GetNode(fsm, pos);
-    printf("Node %d\n", pos);
+    printf("Node '%s' (idx %d)\n", fsm_GetNodeName(fsm, pos), pos);
     printf("Output '%s': ", n->str_output==NULL?"(nul)":n->str_output);
     dcexShow(fsm->dcex, n->tree_output);
     printf("\n");
@@ -1370,7 +1370,7 @@ void fsm_Show(fsm_type fsm)
   while( fsm_LoopEdges(fsm, &pos) != 0 )
   {
     e = fsm_GetEdge(fsm, pos);
-    printf("Edge %d (%d -> %d)\n", pos, e->source_node, e->dest_node);
+    printf("Edge %d: '%s' (idx %d) -> '%s' (idx %d)\n", pos, fsm_GetNodeName(fsm, e->source_node), e->source_node, fsm_GetNodeName(fsm, e->dest_node), e->dest_node);
     printf("Output '%s': ", e->str_output==NULL?"(nul)":e->str_output);
     dcexShow(fsm->dcex, e->tree_output);
     printf("\n");
@@ -1551,6 +1551,8 @@ int fsm_EncodeSimple(fsm_type fsm)
       fsm_GetNodeCode(fsm, node_id), 0 );
   }
   
+  /* code reset node with 0 */
+  
   if ( fsm->reset_node_id >= 0 )
   {
     if ( reset_group_id >= 0 )
@@ -1570,9 +1572,15 @@ int fsm_EncodeSimple(fsm_type fsm)
     {
       dcCopy(pi, fsm_GetNodeCode(fsm, fsm->reset_node_id), c);
       dcCopyOutToIn(pi, fsm_GetNodeCode(fsm, fsm->reset_node_id), 0, pi, fsm_GetNodeCode(fsm, fsm->reset_node_id));
+      
+      fsm_Log(fsm, "FSM: Reset state '%s' encoded with %s.", 
+	fsm_GetNodeNameStr(fsm, fsm->reset_node_id), dcToStr(pi, fsm_GetNodeCode(fsm, fsm->reset_node_id), "/", "") );
+      
     }
-    dcIncOut(pi, c);
+    dcIncOut(pi, c); 	/* increase state code */
   }
+  
+  /* encode all groups, start with 1 */
   
   group_id = -1;
   while( fsm_LoopGroups(fsm, &group_id) != 0 )
@@ -1588,10 +1596,11 @@ int fsm_EncodeSimple(fsm_type fsm)
         fsm_Log(fsm, "FSM: State '%s' encoded with %s (group %d).", 
           fsm_GetNodeNameStr(fsm, node_id), dcToStr(pi, fsm_GetNodeCode(fsm, node_id), "/", ""), group_id);
       }
-      dcIncOut(pi, c);
+      dcIncOut(pi, c); 	/* increase state code */
     }
   }
 
+  /* encode remainig nodes */
   
   node_id = -1;
   while( fsm_LoopNodes(fsm, &node_id) != 0 )
@@ -1602,7 +1611,8 @@ int fsm_EncodeSimple(fsm_type fsm)
       dcCopyOutToIn(pi, fsm_GetNodeCode(fsm, node_id), 0, pi, fsm_GetNodeCode(fsm, node_id));
       fsm_Log(fsm, "FSM: State '%s' encoded with %s (normal).", 
         fsm_GetNodeNameStr(fsm, node_id), dcToStr(pi, fsm_GetNodeCode(fsm, node_id), "/", ""));
-      dcIncOut(pi, c);
+      
+      dcIncOut(pi, c);		/* increase state code */
     }
   }
   
