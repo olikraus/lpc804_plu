@@ -136,13 +136,13 @@ b_sl_type pluc_keywords = NULL;
   map
     cut down the boolean problem and map the problem into the available luts
 */
-#define PLUC_LUT_MAX 128
+#define PLUC_LUT_MAX 26
 #define PLUC_FF_MAX 4
 pluc_lut_t pluc_lut_list[PLUC_LUT_MAX];
 int pluc_lut_cnt = PLUC_FF_MAX;
 int pluc_ff_cnt = 0;
 
-int pluc_internal_cnt = 0;
+int pluc_internal_cnt = 0;	// just a random counter to get unique numbers for the mapping
 
 
 /*==================================================*/
@@ -951,6 +951,12 @@ int pluc_add_lut(pinfo *pi, dclist cl)
 {
   const char *out_signal;
   
+  if ( pluc_lut_cnt >= PLUC_LUT_MAX )
+  {
+    pluc_log("Map: Maximum number of LUTs reached, abort...");
+    return 0;
+  }
+  
   out_signal = pinfoGetOutLabel(pi, 0);
   if ( strncmp(out_signal, fsm_state_out_signal, strlen(fsm_state_out_signal)) != 0 )
   {
@@ -1001,6 +1007,8 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   int i;
   int none_dc_cnt;
   
+  dclist cl_connect;
+  pinfo *pi_connect;
   dclist cl_left, cl_right;
   int new_left_lut;
   int new_right_lut;
@@ -1022,7 +1030,11 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   /* if the number of variables (which are not DC) is lower than 6, then we are done */
   if ( none_dc_cnt <= 5 )
   {
-    //dclShow(pi, cl);
+    if ( cmdline_dbg )
+    {
+      pluc_log("Map: Input 'none dc cnt'=%d, leaf reached", none_dc_cnt);
+      dclShow(pi, cl);
+    }
     assert( none_dc_cnt > 0 );
     if ( dclCnt(cl) == 1 )
     {
@@ -1060,7 +1072,9 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
     return 1;
   }
   
+  
   /* find a suitable variable for splitting */
+  /*
   for( i = 0; i < pi->in_cnt; i++ )
   {
     if ( dclIsDCInVar(pi, cl, i) == 0 )
@@ -1068,64 +1082,51 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
       break;
     }
   }
+  */
   
   if ( pinfoCntDCList(pi, cl, pi->tmp+0) == 0 )
     return 0;		/* memory issue */
   i = pinfoGetSplittingInVar(pi);
+  if ( i < 0 )
+  {
+    /* fallback */
+    for( i = 0; i < pi->in_cnt; i++ )
+    {
+      if ( dclIsDCInVar(pi, cl, i) == 0 )
+      {
+	break;
+      }
+    }
+  }
 
+  if ( cmdline_dbg )
+  {
+    pluc_log("Map: Input none dc cnt=%d, split var=%s (pos %d)", none_dc_cnt, pinfoGetInLabel(pi, i), i);
+    dclShow(pi, cl);
+  }
+   
 
   if ( i >= pi->in_cnt )
     return 0;
   
   
-  /* for a full split we need two more luts: get the number for these luts */
-  new_left_lut = pluc_internal_cnt+0;
-  new_right_lut = pluc_internal_cnt+1;
-  pluc_internal_cnt += 2;
-  
   
   /* create a new boolean function which connects the later functions */
-  {
-    pinfo *pi_connect = pinfoOpen();
-    dclist cl_connect;
+  pi_connect = pinfoOpen();
+  if ( pi_connect  == NULL )
+    return 0;
 
-    if ( pinfoAddOutLabel(pi_connect, pinfoGetOutLabel(pi, 0)) < 0 )
-      return pinfoClose(pi_connect), 0;
+  if ( pinfoAddOutLabel(pi_connect, pinfoGetOutLabel(pi, 0)) < 0 )
+    return pinfoClose(pi_connect), 0;
+  
+  if ( pinfoAddInLabel(pi_connect, pinfoGetInLabel(pi, i)) < 0 )
+    return pinfoClose(pi_connect), 0;
+  
+  if ( dclInitVA(3, &cl_connect, &cl_left, &cl_right) == 0 )
+    return pinfoClose(pi_connect), 0;
     
-    if ( pinfoAddInLabel(pi_connect, pinfoGetInLabel(pi, i)) < 0 )
-      return pinfoClose(pi_connect), 0;
-    
-    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_internal_name(new_left_lut)) < 0 )
-      return pinfoClose(pi_connect), 0;
+  
 
-    if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_internal_name(new_right_lut)) < 0 )
-      return pinfoClose(pi_connect), 0;
-
-    if ( dclInit(&cl_connect) == 0 )
-      return pinfoClose(pi_connect), 0;
-      
-    
-    dcSetTautology(pi, pi_connect->tmp+17);
-    dcSetIn(pi_connect->tmp+17, 0, 2);
-    dcSetIn(pi_connect->tmp+17, 1, 2);
-    if ( dclAdd(pi_connect, cl_connect, pi_connect->tmp+17) < 0 )
-      return pinfoClose(pi_connect), dclDestroy(cl_connect), 0;
-    
-    dcSetTautology(pi, pi_connect->tmp+17);
-    dcSetIn(pi_connect->tmp+17, 0, 1);
-    dcSetIn(pi_connect->tmp+17, 2, 1);
-    if ( dclAdd(pi_connect, cl_connect, pi_connect->tmp+17) < 0 )
-      return pinfoClose(pi_connect), dclDestroy(cl_connect), 0;
-
-    //printf("connector (depth=%d)\n", depth);
-    //dclShow(pi_connect, cl_connect);
-    
-    if ( pluc_add_lut(pi_connect, cl_connect) == 0 )
-      return pinfoClose(pi_connect), dclDestroy(cl_connect), 0;
-
-    pinfoClose(pi_connect);
-    dclDestroy(cl_connect);
-  }
   
   /* construct the cofactor cubes: split happens against variable i (as derived above) */
   dcCopy(pi, cofactor_left, cof);
@@ -1140,24 +1141,61 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   //if ( dcGetNoneDCInVarCofactor(pi, cofactor_left, cofactor_right, cl, cof) == 0 )
   //  return 0;
 
-  if ( dclInitVA(2, &cl_left, &cl_right) == 0 )
-    return 0;
   
   if ( dclSCCCofactor(pi, cl_left, cl, cofactor_left) == 0 )
-    return dclDestroyVA(2, cl_left, cl_right), 0;
+    return pinfoClose(pi_connect), dclDestroyVA(3, cl_connect, cl_left, cl_right), 0;
     
   if ( dclSCCCofactor(pi, cl_right, cl, cofactor_right) == 0 )
-    return dclDestroyVA(2, cl_left, cl_right), 0;
+    return pinfoClose(pi_connect), dclDestroyVA(3, cl_connect, cl_left, cl_right), 0;
 
-  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_internal_name(new_left_lut));
-  if ( pluc_map_cof(pi, cl_left, cofactor_left, depth+1) == 0 )
-    return dclDestroyVA(2, cl_left, cl_right), 0;
+  /* for a full split we need two more luts: get the number for these luts */
+  new_left_lut = pluc_internal_cnt+0;
+  new_right_lut = pluc_internal_cnt+1;
+  pluc_internal_cnt += 2;
   
-  pinfoSetOutLabel(pi, 0, pluc_get_lut_output_internal_name(new_right_lut));
-  if ( pluc_map_cof(pi, cl_right, cofactor_right, depth+1) == 0 )
-    return dclDestroyVA(2, cl_left, cl_right), 0;
+  if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_internal_name(new_left_lut)) < 0 )
+    return pinfoClose(pi_connect), 0;
+
+  if ( pinfoAddInLabel(pi_connect, pluc_get_lut_output_internal_name(new_right_lut)) < 0 )
+    return pinfoClose(pi_connect), 0;
+
+
+  if ( dclCnt(cl_left) > 0 )
+  {
+    dcSetTautology(pi, pi_connect->tmp+17);
+    dcSetIn(pi_connect->tmp+17, 0, 2);
+    dcSetIn(pi_connect->tmp+17, 1, 2);
+    if ( dclAdd(pi_connect, cl_connect, pi_connect->tmp+17) < 0 )
+      return pinfoClose(pi_connect), dclDestroyVA(3, cl_connect, cl_left, cl_right), 0;
+  }
   
-  return dclDestroyVA(2, cl_left, cl_right), 1;
+  if ( dclCnt(cl_right) > 0 )
+  {
+    dcSetTautology(pi, pi_connect->tmp+17);
+    dcSetIn(pi_connect->tmp+17, 0, 1);
+    dcSetIn(pi_connect->tmp+17, 2, 1);
+    if ( dclAdd(pi_connect, cl_connect, pi_connect->tmp+17) < 0 )
+      return pinfoClose(pi_connect), dclDestroyVA(3, cl_connect, cl_left, cl_right), 0;
+  }
+  
+  if ( pluc_add_lut(pi_connect, cl_connect) == 0 )
+    return pinfoClose(pi_connect), dclDestroyVA(3, cl_connect, cl_left, cl_right), 0;
+
+  if ( dclCnt(cl_left) > 0 )
+  {
+    pinfoSetOutLabel(pi, 0, pluc_get_lut_output_internal_name(new_left_lut));
+    if ( pluc_map_cof(pi, cl_left, cofactor_left, depth+1) == 0 )
+      return pinfoClose(pi_connect), dclDestroyVA(3, cl_connect, cl_left, cl_right), 0;
+  }
+  
+  if ( dclCnt(cl_right) > 0 )
+  {
+    pinfoSetOutLabel(pi, 0, pluc_get_lut_output_internal_name(new_right_lut));
+    if ( pluc_map_cof(pi, cl_right, cofactor_right, depth+1) == 0 )
+      return pinfoClose(pi_connect), dclDestroyVA(3, cl_connect, cl_left, cl_right), 0;
+  }
+  
+  return pinfoClose(pi_connect), dclDestroyVA(3, cl_connect, cl_left, cl_right), 1;
   
 }
 

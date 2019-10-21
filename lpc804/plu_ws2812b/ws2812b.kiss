@@ -15,12 +15,25 @@
 
 .r wait
 
-1- wait	a 	11
--1 a 	h 	11
--0 a 	l 	01
--- h 	z	01
--- l 	z	01
-1- z 	a	11
-0- z 	wait 	00
-0- wait	wait 	00
+1- 	wait	a0 	11
+-1 	a0 	h0 	11
+-0 	a0 	l0 	01
+-- 	h0 	z0	01
+-- 	l0 	z0	01
+-- 	z0 	a2	11
+
+#-1 	a1 	h1 	11
+#-0 	a1 	l1 	01
+#-- 	h1 	z1	01
+#-- 	l1 	z1	01
+#-- 	z1 	a2	11
+
+-1 	a2 	h2 	11
+-0 	a2 	l2 	01
+-- 	h2 	z2	01
+-- 	l2 	z2	01
+1- 	z2 	a0	11
+0- 	z2 	wait 	00
+
+0- 	wait	wait 	00
 
