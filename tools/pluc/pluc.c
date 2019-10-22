@@ -1173,7 +1173,7 @@ int pluc_map_cof(pinfo *pi, dclist cl, dcube *cof, int depth)
   {
     dcSetTautology(pi, pi_connect->tmp+17);
     dcSetIn(pi_connect->tmp+17, 0, 1);
-    dcSetIn(pi_connect->tmp+17, 2, 1);
+    dcSetIn(pi_connect->tmp+17, 2, 2);	/* was: , 2, 1 */
     if ( dclAdd(pi_connect, cl_connect, pi_connect->tmp+17) < 0 )
       return pinfoClose(pi_connect), dclDestroyVA(3, cl_connect, cl_left, cl_right), 0;
   }

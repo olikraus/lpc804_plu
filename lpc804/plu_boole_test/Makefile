@@ -34,7 +34,7 @@ GCCBINPATH:=/usr/bin/
 # Project Information
 
 # The name for the project
-TARGETNAME:=plu_auto_lut
+TARGETNAME:=boole_test
 
 # The source files of the project
 SRC:=$(wildcard *.c) plu.c
@@ -109,7 +109,7 @@ LDLIBS:=--specs=nosys.specs -L$(LDSCRIPTDIR) -T $(LDSCRIPT)
 all: $(DISNAME) $(HEXNAME)
 	$(SIZE) $(ELFNAME)
 
-plu.c:
+plu.c: boole_test.bex
 	../../tools/pluc/pluc boole_test.bex -oc plu.c -fn plu
 
 
