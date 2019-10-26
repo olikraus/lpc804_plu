@@ -1,0 +1,18 @@
+#
+# step_up.kiss
+#
+# acomp: output of the analog comparator
+# pwm: Should be connected the gate of the MOSFET which controlls the step up converter
+#
+
+.ilb acomp
+.ob pwm
+
+.r idle
+
+0 idle high 1
+0 high low 0
+0 low high 1
+1 high idle 0
+1 low idle 0
+1 idle idle 0
