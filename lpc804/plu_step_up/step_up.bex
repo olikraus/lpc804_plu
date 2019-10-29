@@ -11,7 +11,7 @@
 # PIO0_23 ... PIO0_30
 
 
-PIO0_9 <= pwm;
+PIO0_9 <= mosfet;
 acomp <= COMP0_OUT ;
 
 PLU_CLKIN <= CLKOUT;

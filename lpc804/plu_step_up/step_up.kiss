@@ -6,7 +6,7 @@
 #
 
 .ilb acomp
-.ob pwm
+.ob mosfet
 
 .r idle
 
