@@ -127,6 +127,7 @@ typedef struct _pluc_wire_struct pluc_wire_t;
 int pluc_is_FF_used = 0;		// whether FF are used or not
 
 char c_file_name[1024] = "";
+char cmdline_pla_name[1024] = "";
 long cmdline_clkdiv = 1;
 int cmdline_lposc = 0;
 int cmdline_listmap = 0;
@@ -908,6 +909,11 @@ int pluc_read(void)
   if ( cmdline_dbg )
   {
     dclShow(&pi, cl_on);
+  }
+  
+  if ( cmdline_pla_name[0] != '\0' )
+  {
+    dclWritePLA(&pi, cl_on, cmdline_pla_name);
   }
   
 
@@ -2231,6 +2237,8 @@ cl_entry_struct cl_list[] =
   { CL_TYP_ON,      "listkeywords-list allowed signal names", &cmdline_listkeywords,  0 },
   { CL_TYP_GROUP, "PLUC Internals", NULL, 0},
   { CL_TYP_ON,      "dbg-output additional debug information", &cmdline_dbg,  0 },
+  { CL_TYP_STRING,  "opla-write PLA file after file import and resolve step", cmdline_pla_name, 1024 },
+  
   { CL_TYP_ON,      "listmap-list wire mapping", &cmdline_listmap,  0 },
   { CL_TYP_STRING,  "testoutroute-Find a route from given output to a LUT", cmdline_output, 1024 },
   { CL_TYP_STRING,  "testinroute-Find a route from given input to a LUT", cmdline_input, 1024 },
