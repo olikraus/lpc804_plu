@@ -156,6 +156,8 @@ int b_sl_Find(b_sl_type b_sl, const char *s)
 {
   char *t;
   int i, cnt;
+  if ( b_sl == NULL )
+    return -1;
   cnt = b_sl_GetCnt(b_sl);
   for( i = 0; i < cnt; i++ )
   {
