@@ -78,10 +78,10 @@ int __attribute__ ((noinline)) main(void)
   
   LPC_CMP->LAD = 1 | (2<<1);				/* enable ladder, 2*3.3V/31 = 0.213V */
 
-  /* compare the ladder output against voltage ag PIN0_1 bandgap */
+  /* compare the ladder output against voltage at PIO0_1 */
   LPC_CMP->CTRL =
     ( 1 << COMPSA ) |					/* sync with bus clock */
-    (ACOMP_IN2 << COMP_VP_SEL) |
-    (V_LADDER_OUT << COMP_VM_SEL);
+    (ACOMP_IN2 << COMP_VP_SEL) |			/* PIO0_1 */
+    (V_LADDER_OUT << COMP_VM_SEL);		/* 0.213V */
   
 }
