@@ -2,7 +2,7 @@
 # step_up.kiss
 #
 # acomp: output of the analog comparator
-# pwm: Should be connected the gate of the MOSFET which controlls the step up converter
+# mosfet: Should be connected the gate of the MOSFET which controlls the step up converter
 #
 
 .ilb acomp
