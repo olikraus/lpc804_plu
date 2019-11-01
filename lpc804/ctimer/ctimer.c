@@ -57,14 +57,6 @@ void mapFunctionToPort(uint32_t fn, uint32_t port)
   LPC_SWM->PINASSIGN[fn/4] &= ~((port^255UL)<<(8*(fn%4)));
 }
 
-void mapFunctionToPort(uint32_t fn, uint32_t port)
-{
-  /* first reset the pin assignment to 0xff (this is also the reset value */
-  LPC_SWM->PINASSIGN[fn/4] |= ((0xffUL)<<(8*(fn%4)));
-  /* then write the destination pin to it */
-  LPC_SWM->PINASSIGN[fn/4] &= ~((port^255UL)<<(8*(fn%4)));
-}
-
 
 /*=======================================================================*/
 int __attribute__ ((noinline)) main(void)
