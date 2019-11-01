@@ -99,7 +99,10 @@ int __attribute__ ((noinline)) main(void)
   {
     if ( GPIOGetPinValue(PORT0, 2) == 0 )
     {
+      while( (LPC_SPI0->STAT & SPI_STAT_TXRDY) == 0 )
+	;
       LPC_SPI0->TXDAT = 0x99;	/* test pattern: 10011001 */
+      //LPC_SPI0->TXDAT = 0xf0;	/* test pattern: 1111000 */
     }
   }
 }
