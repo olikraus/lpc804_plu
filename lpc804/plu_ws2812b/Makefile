@@ -37,7 +37,7 @@ GCCBINPATH:=/usr/bin/
 TARGETNAME:=ws2812b
 
 # The source files of the project
-SRC:=$(wildcard *.c) plu.c
+SRC:=$(wildcard *.c) plu_setup.c
 
 # The CPU architecture (will be used for -mcpu)
 # for the LPC804, can we use "cortex-m0plus" instead of "cortex-m0"?
@@ -109,8 +109,8 @@ LDLIBS:=--specs=nosys.specs -L$(LDSCRIPTDIR) -T $(LDSCRIPT)
 all: $(DISNAME) $(HEXNAME)
 	$(SIZE) $(ELFNAME)
 
-plu.c: ws2812b.bex ws2812b.kiss
-	../../tools/pluc/pluc ws2812b.bex ws2812b.kiss -oc plu.c -fn plu -clkdiv 6 -xrst
+plu_setup.c: ws2812b.bex ws2812b.kiss
+	../../tools/pluc/pluc ws2812b.bex ws2812b.kiss -oc plu_setup.c -fn plu -clkdiv 6 -xrst
 
 
 .PHONY: upload
@@ -120,7 +120,7 @@ upload: $(DISNAME) $(HEXNAME) $(ELFNAME)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJ) $(HEXNAME) $(ELFNAME) $(LIBNAME) $(DISNAME) $(MAPNAME) libssp.a libssp_nonshared.a plu.c
+	$(RM) $(OBJ) $(HEXNAME) $(ELFNAME) $(LIBNAME) $(DISNAME) $(MAPNAME) libssp.a libssp_nonshared.a plu_setup.c
 
 # implicit rules
 .elf.hex:
