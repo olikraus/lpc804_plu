@@ -120,7 +120,7 @@ upload: $(DISNAME) $(HEXNAME) $(ELFNAME)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJ) $(HEXNAME) $(ELFNAME) $(LIBNAME) $(DISNAME) $(MAPNAME) libssp.a libssp_nonshared.a plu_setup.c
+	$(RM) $(OBJ) $(HEXNAME) $(ELFNAME) $(LIBNAME) $(DISNAME) $(MAPNAME) libssp.a libssp_nonshared.a 
 
 # implicit rules
 .elf.hex:
