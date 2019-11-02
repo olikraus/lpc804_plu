@@ -11,8 +11,8 @@
 # PIO0_23 ... PIO0_30
 
 
-sck <= PIO0_22;
-mosi <= PIO0_21;
+sck <= PIO0_9;
+mosi <= PIO0_11;
 PIO0_8 <= data;
 
 PLU_CLKIN <= CLKOUT;
