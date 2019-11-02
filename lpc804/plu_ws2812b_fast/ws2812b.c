@@ -67,7 +67,7 @@ void spi_init(void)
   mapFunctionToPort(SPI0_MOSI, 11);
   
   LPC_SYSCON->SPI0CLKSEL = FCLKSEL_MAIN_CLK;	
-  LPC_SPI0->DIV = 24;	/* 22 still seems to work */
+  LPC_SPI0->DIV = 14;	/* 13 still seems to work */
   LPC_SPI0->CFG = SPI_CFG_ENABLE | SPI_CFG_MASTER;
 }
 

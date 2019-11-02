@@ -1,0 +1,33 @@
+#
+# ws2812b.kiss
+#
+# Output either code "0" or "1" to a WS2812 controller.
+# Can be connected to a SPI master.
+# PLU FF clock derived from main clock (15MHz) must be 6 (0.4 us)
+# wait -> wx: 0 ... 0.4us
+# SPI cycle time must be at  4*0.4us = 1.6 us (625kHz)
+# SPI clock div for the main clk should be 24 (625kHz) 
+#
+
+.ilb sck mosi
+.ob data
+
+.r wait
+
+0- wait wait 0
+
+# output "1"
+11 wait w1 0
+-- w1 t1h1 1
+-- t1h1 t1h2 1
+-- t1h2 t1h3 1
+-- t1h3 t1h4 1
+-- t1h4 t1h5 1
+-- t1h5 wait 0
+
+# output "0"
+10 wait w0 0
+-- w0 t0h1 1
+-- t0h1 t0h2 1
+-- t0h2 t0h3 1
+-- t0h3 wait 0
