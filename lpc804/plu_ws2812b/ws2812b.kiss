@@ -5,8 +5,8 @@
 # Can be connected to a SPI master.
 # PLU FF clock derived from main clock (15MHz) must be 6 (0.4 us)
 # wait -> wx: 0 ... 0.4us
-# SPI cycle time must be at  (4+1)*0.4us = 2.0 us (500kHz)
-# SPI clock div for the main clk should be 30 (500kHz) 
+# SPI cycle time must be at  4*0.4us = 1.6 us (625kHz)
+# SPI clock div for the main clk should be 24 (625kHz) 
 #
 
 .ilb sck mosi
@@ -20,13 +20,9 @@
 11 wait w1 0
 -- w1 t1h1 1
 -- t1h1 t1h2 1
--- t1h2 tl 0
+-- t1h2 wait 0
 
 # output "0"
 10 wait w0 0
 -- w0 t0h 1
--- t0h t0l 0
--- t0l tl 0
-
-# back to wait state
--- tl wait 0
+-- t0h wait 0

@@ -59,6 +59,44 @@ void mapFunctionToPort(uint32_t fn, uint32_t port)
   LPC_SWM->PINASSIGN[fn/4] &= ~((port^255UL)<<(8*(fn%4)));
 }
 
+void spi_init(void)
+{
+  Enable_Periph_Clock(CLK_SPI0);
+  
+  mapFunctionToPort(SPI0_SCK, 9);
+  mapFunctionToPort(SPI0_MOSI, 11);
+  
+  LPC_SYSCON->SPI0CLKSEL = FCLKSEL_MAIN_CLK;	
+  LPC_SPI0->DIV = 24;
+  LPC_SPI0->CFG = SPI_CFG_ENABLE | SPI_CFG_MASTER;
+}
+
+void spi_out(uint8_t *data, int cnt)
+{
+  int i;
+  LPC_SPI0->TXCTL = 
+      SPI_CTL_RXIGNORE | 		/* do not read data from MISO */
+      SPI_CTL_LEN(8) | 			/* send 8 bits */
+      SPI_TXDATCTL_SSELN(3); 	/* do not use any slave select */
+  for( i = 0; i < cnt; i ++ )
+  {
+    /* wait until the tx register can accept further data */
+    while( (LPC_SPI0->STAT & SPI_STAT_TXRDY) == 0 )
+      ;
+
+    /* ensure, that the SCK goes to low after the byte transfer: */
+    /* Set the EOT flag at the end of the transfer */
+    if ( i+1 == cnt )
+    {
+      LPC_SPI0->TXCTL |= SPI_CTL_EOT;
+    }
+    
+    /* transfer one byte via SPI */
+    LPC_SPI0->TXDAT = data[i];
+  }
+
+}
+
 
 /*=======================================================================*/
 int __attribute__ ((noinline)) main(void)
@@ -75,50 +113,23 @@ int __attribute__ ((noinline)) main(void)
   SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
 
 
-  GPIOInit();
-  Enable_Periph_Clock(CLK_IOCON);
-  Enable_Periph_Clock(CLK_SWM);
-  
-  GPIOSetDir( PORT0, 9, OUTPUT);
-  GPIOSetDir( PORT0, 11, OUTPUT);
-  GPIOSetDir( PORT0, 15, OUTPUT);
-  
-  /* configure SPI */
-  Enable_Periph_Clock(CLK_SPI0);
-  
-  mapFunctionToPort(SPI0_SCK, 9);
-  mapFunctionToPort(SPI0_MOSI, 11);
-  
-  LPC_SYSCON->SPI0CLKSEL = FCLKSEL_MAIN_CLK;	
-  LPC_SPI0->DIV = 30;
-  LPC_SPI0->CFG = SPI_CFG_ENABLE | SPI_CFG_MASTER;
     
   plu();		/* plu() will enable GPIO0 & SWM clock */
-
-
+  spi_init();	
 
   delay_micro_seconds(50);
   for(;;)
   {
     a[0]++;
     a[0] &= 255;
-    LPC_SPI0->TXCTL = 
-      SPI_CTL_RXIGNORE | 		/* do not read data from MISO */
-      SPI_CTL_LEN(8) | 			/* send 8 bits */
-      SPI_TXDATCTL_SSELN(3); 	/* do not use any slave select */
-    for( i = 0; i < 6; i ++ )
-    {
-      while( (LPC_SPI0->STAT & SPI_STAT_TXRDY) == 0 )
-	;
-
-      if ( i+1 == 6 )
-	LPC_SPI0->TXCTL |= SPI_CTL_EOT;		/* ensure, that the SCK goes to low */
-      LPC_SPI0->TXDAT = a[i];	
-      
-    }
-    while( (LPC_SPI0->STAT & SPI_STAT_TXRDY) == 0 )
-      ;
-    delay_micro_seconds(50+10+210);
+    spi_out(a, 6);
+    
+    /* LPC804 has might have up to two bytes in the queue, wait for their transmission */    
+    delay_micro_seconds(24+24);
+    /* write the new values into the LEDs */
+    delay_micro_seconds(50);
+    
+    /* end user delay */
     delay_micro_seconds(10000L);
   }
   
