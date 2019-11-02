@@ -11,13 +11,9 @@
 # PIO0_23 ... PIO0_30
 
 
-LVLSHFT_IN0 <= PIO0_2;
-PIO0_22 <= LVLSHFT_OUT0;
-
-b0 <= PIO0_22;
-enable <= PIO0_10;
-PIO0_15 <= data;
-PIO0_9 <= active;
+sck <= PIO0_22;
+mosi <= PIO0_21;
+PIO0_8 <= data;
 
 PLU_CLKIN <= CLKOUT;
 

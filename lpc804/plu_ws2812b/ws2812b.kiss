@@ -1,39 +1,28 @@
 #
 # ws2812b.kiss
 #
-# 4-bit output FSM
-# FSM clock speed: 0.4us = 15/6 MHz
-#
-# data: Output signal to ws2812b controller
-# active: internal output, signals activity 1: FSM is active, 0: FSM is idle
-# enable: is only monitored during FSM wait state.
-# 0-1 transition of the enable signal will start the FSM
+# Output either code "0" or "1" to a WS2812 controller.
+# Can be connected to a SPI master.
+# SPI cycle time must be ca. 1.25 us (800kHz)
+# SPI clock div for the main clk can be 18 (833kHz) or 19 (789kHz)
 #
 
-.ilb enable b0
-.ob data active
+.ilb sck mosi
+.ob data
 
 .r wait
 
-1- 	wait	a0 	11
--1 	a0 	h0 	11
--0 	a0 	l0 	01
--- 	h0 	z0	01
--- 	l0 	z0	01
--- 	z0 	a1	11
+0- wait wait 0
 
--1 	a1 	h1 	11
--0 	a1 	l1 	01
--- 	h1 	z1	01
--- 	l1 	z1	01
--- 	z1 	a2	11
+# output "1"
+11 wait t1h1 1
+-- t1h1 t1h2 1
+-- t1h2 tl 0
 
--1 	a2 	h2 	11
--0 	a2 	l2 	01
--- 	h2 	z2	01
--- 	l2 	z2	01
-1- 	z2 	a0	11
-0- 	z2 	wait 	00
+# output "0"
+10 wait t0h 1
+-- t0h t0l 0
+-- t0l tl 0
 
-0- 	wait	wait 	00
-
+# back to wait state
+-- t0 wait 0
