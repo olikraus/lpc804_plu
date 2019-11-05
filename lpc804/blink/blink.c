@@ -21,7 +21,9 @@ volatile uint32_t sys_tick_irq_cnt=0;
 void __attribute__ ((interrupt)) SysTick_Handler(void)
 {  
   sys_tick_irq_cnt++;
+  GPIOSetBitValue(PORT0, 9, (sys_tick_irq_cnt & 1) == 0?0:1);
 }
+
 
 /*=======================================================================*/
 /*
@@ -50,6 +52,7 @@ int __attribute__ ((noinline)) main(void)
   
 
   GPIOSetDir( PORT0, 15, OUTPUT);
+  GPIOSetDir( PORT0, 9, OUTPUT);
 
   for(;;)
   {
@@ -59,3 +62,4 @@ int __attribute__ ((noinline)) main(void)
     delay_micro_seconds(1000000);
   }
 }
+

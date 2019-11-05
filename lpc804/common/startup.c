@@ -126,15 +126,55 @@ void __attribute__ ((interrupt)) __attribute__ ((noreturn)) Reset_Handler(void)
     ;
 }
 
+/* the default handler is only referenced via alias attribute */
+void __attribute__ ((interrupt)) Default_Handler(void)
+{
+}
+
 /* "NMI_Handler" is used in the ld script to calculate the checksum */
-void __attribute__ ((interrupt)) NMI_Handler(void)
+/* This is a weak function and can be overwritten by the user */
+void __attribute__ ((interrupt, weak)) NMI_Handler(void)
 {
 }
 
 /* "HardFault_Handler" is used in the ld script to calculate the checksum */
-void __attribute__ ((interrupt)) HardFault_Handler(void)
+/* This is a weak function and can be overwritten by the user */
+void __attribute__ ((interrupt, weak)) HardFault_Handler(void)
 {
 }
+
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) SysTick_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) SVC_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) PendSV_Handler(void);
+
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) SPI0_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) DAC0_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) UART0_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) UART1_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) I2C1_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) I2C0_Handler(void);
+
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) MRT_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) CMP_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) WDT_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) BOD_Handler(void);
+
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) WKT_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) ADC_SEQA_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) ADC_SEQB_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) ADC_THCMP_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) ADC_OVR_Handler(void);
+
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) CTIMER0_Handler(void);
+
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) PININT0_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) PININT1_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) PININT2_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) PININT3_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) PININT4_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) PININT5_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) PININT6_Handler(void);
+void __attribute__ ((interrupt, weak, alias("Default_Handler"))) PININT7_Handler(void);
 
 /* make the checksum known to the c compiler, value will be calculated by the linker script */
 void LPC_checksum(void);
@@ -158,44 +198,44 @@ isr_handler_t __isr_vector[48] __attribute__ ((section(".isr_vector"))) __attrib
   0,                                /* Reserved */
   0,                                /* Reserved */
   0,                                /* Reserved */
-  0,                                /* -5, SVCall Handler */
+  SVC_Handler,               /* -5, SVCall Handler */
   0,                                /* -4, Reserved */
   0,                                /* -3, Reserved */
-  0,                                /* -2, PendSV Handler */
+  PendSV_Handler,         /* -2, PendSV Handler */
   SysTick_Handler,         /* -1, SysTick Handler */            
 
 
-  0,  					/* 0 SPI0_IRQn, SPI0 controller */
+  SPI0_Handler,  		/* 0 SPI0_IRQn, SPI0 controller */
   0, 					/* 1 Not used/Reserved */
-  0,					/* 2 DAC0_IRQn, DAC0 Interrupt */
-  0,					/* 3 UART0_IRQn, USART0 */
-  0,					/* 4 UART1_IRQn, USART1 */
+  DAC0_Handler,		/* 2 DAC0_IRQn, DAC0 Interrupt */
+  UART0_Handler,		/* 3 UART0_IRQn, USART0 */
+  UART1_Handler,		/* 4 UART1_IRQn, USART1 */
   0, 					/* 5 Not used */
   0,					/* 6 Not used */
-  0,					/* 7 I2C1 controller */
-  0,					/* 8 I2C0 controller */
+  I2C1_Handler,		/* 7 I2C1 controller */
+  I2C0_Handler,		/* 8 I2C0 controller */
   0,					/* 9 Not used/Reserved */
-  0,					/* 10 MRT_IRQnMulti-Rate Timer */
-  0,					/* 11 CMP_IRQn, Analog Comparator /CapTouch*/
-  0,					/* 12 WDT_IRQn WDT */
-  0,					/* 13 BOD_IRQn BOD Brown Out Detect */
+  MRT_Handler,			/* 10 MRT_IRQnMulti-Rate Timer */
+  CMP_Handler,			/* 11 CMP_IRQn, Analog Comparator /CapTouch*/
+  WDT_Handler,		/* 12 WDT_IRQn WDT */
+  BOD_Handler,			/* 13 BOD_IRQn BOD Brown Out Detect */
   0,					/* 14 FLASH_IRQn (/Reserved according to the user manual) */
-  0,					/* 15 WKT_IRQn Self wake-up timer */
-  0,					/* 16 ADC_SEQA_IRQn */
-  0,					/* 17 ADC_SEQB_IRQn */
-  0,					/* 18 ADC_THCMP_IRQn ADC threshold compare */
-  0,					/* 19 ADC_OVR_IRQn ADC overrun  */
+  WKT_Handler,			/* 15 WKT_IRQn Self wake-up timer */
+  ADC_SEQA_Handler,	/* 16 ADC_SEQA_IRQn */
+  ADC_SEQB_Handler,	/* 17 ADC_SEQB_IRQn */
+  ADC_THCMP_Handler,	/* 18 ADC_THCMP_IRQn ADC threshold compare */
+  ADC_OVR_Handler,		/* 19 ADC_OVR_IRQn ADC overrun  */
   0,					/* 20 Not used/Reserved */
   0,					/* 21 Not used/Reserved */
   0,					/* 22 Not used/Reserved */
-  0,					/* 23 CTIMER0_IRQn, CT32B0_IRQ */
-  0,					/* 24 PIO INT0 */
-  0,					/* 25 PIO INT1 */
-  0,					/* 26 PIO INT2 */
-  0,					/* 27 PIO INT3 */
-  0,					/* 28 PIO INT4 */
-  0,					/* 29 PIO INT5 */
-  0,					/* 30 PIO INT6 */
-  0					/* 31 PIO INT7 */                      
+  CTIMER0_Handler,		/* 23 CTIMER0_IRQn, CT32B0_IRQ */
+  PININT0_Handler,		/* 24 PIO INT0, PININT0 */
+  PININT1_Handler,		/* 25 PIO INT1, PININT1 */
+  PININT2_Handler,		/* 26 PIO INT2, PININT2 */
+  PININT3_Handler,		/* 27 PIO INT3, PININT3 */
+  PININT4_Handler,		/* 28 PIO INT4, PININT4 */
+  PININT5_Handler,		/* 29 PIO INT5, PININT5 */
+  PININT6_Handler,		/* 30 PIO INT6, PININT6 */
+  PININT7_Handler		/* 31 PIO INT7, PININT7 */
 };
 
