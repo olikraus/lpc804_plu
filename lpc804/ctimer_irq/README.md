@@ -20,4 +20,3 @@ Result:
 
 ![lpc804_blink_schematic.png](../blink/lpc804_blink_schematic.png)
 
-![lpc804_ctimer.png](lpc804_ctimer.png)
