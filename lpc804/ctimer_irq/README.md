@@ -8,10 +8,10 @@
  * Additionally LED at pin PIO0_9 will be toggled by an interrupt procedure.
  
 The following steps are required for interrupts:
- # The handler has to be defined in the code. The handler name is predefined in startup.c: `CTIMER0_Handler()`
- # The interrupt must be enabled in CTIMER MCR register
- # The CTIMER NVIC IRQ has to be enabled with `NVIC_EnableIRQ(CTIMER0_IRQn)`
- # Once the interrupt has happend, it must be cleared in CTIMER IR register by setting the corresponding bit. 
+ 1. The handler has to be defined in the code. The handler name is predefined in startup.c: `CTIMER0_Handler()`
+ 2. The interrupt must be enabled in CTIMER MCR register
+ 3. The CTIMER NVIC IRQ has to be enabled with `NVIC_EnableIRQ(CTIMER0_IRQn)`
+ 4. Once the interrupt has happend, it must be cleared in CTIMER IR register by setting the corresponding bit. 
  
 
 Result:
