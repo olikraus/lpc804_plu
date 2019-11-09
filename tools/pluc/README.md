@@ -12,7 +12,7 @@ gcc *.c -o pluc
 is required to compile all the source code. The generated exe can be copied to any place.
 Under Windows OS the source can be compiled within "MinGW".
 
-## Documentation
+## User Manual
 
 [https://github.com/olikraus/lpc804_plu/wiki/pluc](https://github.com/olikraus/lpc804_plu/wiki/pluc)
 
