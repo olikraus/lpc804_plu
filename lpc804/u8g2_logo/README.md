@@ -1,6 +1,6 @@
 # SSD1306 demo with u8g2 library (software emulated I2C)
 
- * Post: [https://drolliblog.wordpress.com/2019/10/04/nxp-lpc804-toolchain-and-blink-project/](https://drolliblog.wordpress.com/2019/10/04/nxp-lpc804-toolchain-and-blink-project/)
+ * u8g2 library location: "git clone" for u8g2 and lpc804_plu should be on the same directory folder
  * USB UART Converter is connected to pins 6 and 19 of the LPC804
  * A switch at pin 4 selects between in-system programming and user code mode
  * A button at pin 5 will reset the LPC804 and either start the ISP bootloader or the user code (depending on the state at pin 4)
