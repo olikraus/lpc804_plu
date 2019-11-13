@@ -11,11 +11,9 @@
 #include "LPC8xx.h"
 #include "gpio.h"
 #include "delay.h"
-#include "i2c.h"
+#include "util.h"	/* i2c procedures */
 #include "u8x8.h"
 
-
-int i2c_write( uint8_t adr, uint8_t *buf, uint8_t len );
 
 
 /* although we use SW I2C, use the HW pins for later upgrade */

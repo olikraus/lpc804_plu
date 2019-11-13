@@ -1,9 +1,9 @@
 /*
   delay.h
   
-  LPC11U3x GPS Logger (https://github.com/olikraus/lpc11u3x-gps-logger)
+  LPC804 Project 
 
-  Copyright (c) 2016, olikraus@gmail.com
+  Copyright (c) 2019, olikraus@gmail.com
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without modification, 

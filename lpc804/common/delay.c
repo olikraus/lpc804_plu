@@ -7,7 +7,7 @@
   
   LPC804 Project 
 
-  Copyright (c) 2016, olikraus@gmail.com
+  Copyright (c) 2019, olikraus@gmail.com
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without modification, 
@@ -37,7 +37,7 @@
   
 */
 
-#include <LPC8xx.h>
+#include "LPC8xx.h"
 
 /* Generic ARM delay procedure, based on the system timer (SysTick) */
 

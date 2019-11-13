@@ -6,6 +6,7 @@
 #include <swm.h>
 #include <i2c.h>
 #include <delay.h>
+#include "util.h"	/* i2c procedures */
 #include "u8g2.h"
 
 
@@ -36,124 +37,8 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
 
 
 /*=======================================================================*/
-/* 
-  replacement for ConfigSWM(uint32_t func, uint32_t port_pin) 
-  
-  Args:
-    fn: A function number, e.g. T0_MAT0, see swm.h
-    port: A port number for the GPIO port (0..30)
-
-*/
-void mapFunctionToPort(uint32_t fn, uint32_t port)
-{
-  /* first reset the pin assignment to 0xff (this is also the reset value */
-  LPC_SWM->PINASSIGN[fn/4] |= ((0xffUL)<<(8*(fn%4)));
-  /* then write the destination pin to it */
-  LPC_SWM->PINASSIGN[fn/4] &= ~((port^255UL)<<(8*(fn%4)));
-}
-/*=======================================================================*/
 
 
-void i2c_init(void)
-{
-  
-  //for(;;)
-  {
-    Enable_Periph_Clock(CLK_I2C0);
-    Do_Periph_Reset(RESET_I2C0);
-    /*
-      15 MHz, I2C Busclock 100MHz
-	CLKDIV = 74  
-    */
-    LPC_SYSCON->I2C0CLKSEL = 1;	/* main clock */
-    
-    LPC_I2C0->CLKDIV = 74;
-    LPC_I2C0->MSTTIME = 0;
-    
-    
-    LPC_I2C0->CFG = CFG_MSTENA;
-
-    /*
-    {
-      uint8_t buf[1] = { 0xaf };
-      i2c_write( 0x78, buf, 1);
-    }
-    */
-    
-  }  
-  
-}
-
-/*
-  return:
-    0: time out
-    1: all ok
-*/
-int i2c_wait(void)
-{
-  uint32_t cnt = 0;
-  int i = 0;
-  while(!(LPC_I2C0->STAT & STAT_MSTPEND) )
-  {
-    cnt++;
-    if ( cnt > (1<<17) )
-      return 0;
-  }
-  return 1;
-}
-
-#define I2C_OK 0
-#define I2C_TIMEOUT_PRE_ADR 1
-
-/* pending flag is active too long */
-/* root cause: */
-/* 1) SWM mapping was done after I2C subsystem enable (it must be done before) */
-/* 2) SCL line is permanently pulled down */
-#define I2C_TIMEOUT_POST_ADR 2
-
-#define I2C_TIMEOUT_TX 3
-
-/* there was an attempt to access the I2C bus, but the I2C subsystem is not ready */
-#define I2C_NOT_IDLE 4 
-/* transmission not available after sending the address with write request */
-/* root cause: 1) wrong address, client not available */
-/* 2) SDA line is mapped to an incorrect port (permanently pull up or pull down) */
-/* 3) SCL line is mapped to an incorrect port (permanently pull up) */
-#define I2C_NO_TX_POST_ADR 5
-
-/* transmission not available after sending data (maybe NACK by client) */
-#define I2C_NO_TX_POST_TX 6
-
-int i2c_write( uint8_t adr, uint8_t *buf, uint8_t len )
-{	
-  uint32_t i;
-
-  // Wait for MSTPENDING bit set in STAT register
-  if ( i2c_wait() == 0 )
-    return I2C_TIMEOUT_PRE_ADR;
-  if ((LPC_I2C0->STAT & MASTER_STATE_MASK) != I2C_STAT_MSTST_IDLE)
-    return I2C_NOT_IDLE;
-  
-  LPC_I2C0->MSTDAT = adr | 0;    					// Address with 0 for RWn bit (WRITE)
-  LPC_I2C0->MSTCTL = CTL_MSTSTART;										// Start the transaction by setting the MSTSTART bit to 1 in the Master control register.
-  if ( i2c_wait() == 0 )   // Wait for the address to be ACK'd
-    return I2C_TIMEOUT_POST_ADR;
-  if ((LPC_I2C0->STAT & MASTER_STATE_MASK) != I2C_STAT_MSTST_TX)
-    return I2C_NO_TX_POST_ADR;
-  
-  for ( i = 0; i < len; i++ ) 
-  {
-    LPC_I2C0->MSTDAT = buf[i];               // Send the data to the slave
-    LPC_I2C0->MSTCTL = CTL_MSTCONTINUE;                // Continue the transaction
-    if ( i2c_wait() == 0 )  // Wait for the address to be ACK'd
-      return I2C_TIMEOUT_TX;
-    if ((LPC_I2C0->STAT & MASTER_STATE_MASK) != I2C_STAT_MSTST_TX)
-      return I2C_NO_TX_POST_TX;
-  }
-  
-  LPC_I2C0->MSTCTL = CTL_MSTSTOP;                    // Send a stop to end the transaction
-  return I2C_OK;
-}
 
 void i2c_out_blink_code(int err)
 {
@@ -233,14 +118,11 @@ int __attribute__ ((noinline)) main(void)
   
   LPC_IOCON->PIO0_14 |= 1<<IOCON_OD;
   LPC_IOCON->PIO0_7 |= 1<<IOCON_OD;
-  mapFunctionToPort(I2C0_SDA, 14);
-  mapFunctionToPort(I2C0_SCL, 7);
+  map_function_to_port(I2C0_SDA, 14);
+  map_function_to_port(I2C0_SCL, 7);
 
-  i2c_init();
+  i2c_init(9);
 
-  //LPC_IOCON->PIO0_14 |= 1<<IOCON_OD;
-  //LPC_IOCON->PIO0_7 |= 1<<IOCON_OD;
-  
   {
     uint8_t buf[1] = { 0x0af };
     err = i2c_write(0x078, buf, 1);
