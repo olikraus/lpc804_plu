@@ -10,4 +10,4 @@ jobs:
     steps:
     - name: make
       working-directory: ./tools/hex2lpc8xx
-      run: pwd
+      run: echo `pwd`
