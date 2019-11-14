@@ -1,0 +1,13 @@
+name: hex2lpc8xx build
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: make
+      working-directory: ./tools/hex2lpc8xx
+      run: make
