@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Display the path
-        working-directory: ${{ github.workspace }}
+        working-directory: ${{ github.workspace }}/tools/hex2lpc8xx
         run: echo $PWD
         shell: bash
       - name: ls
