@@ -39,6 +39,8 @@
 
 #include "LPC8xx.h"
 #include "syscon.h"
+#include "iocon.h"
+#include "swm.h"
 #include "i2c.h"
 #include "util.h"
 
@@ -51,23 +53,66 @@
     *get_iocon_by_port(7)
   is the same as the above statement.
 */
+
+const uint8_t pio_to_iocon_offset[] = 
+{
+/* 00 */     0x44,
+/* 01 */     0x2C,
+/* 02 */     0x18,
+/* 03 */     0x14,
+/* 04 */     0x10,
+/* 05 */     0x0C,
+/* 07 */     0x3C,
+/* 08 */     0x38,
+/* 09 */     0x34,
+/* 10 */    0x20,
+/* 11 */    0x1C,
+/* 12 */    0x08,
+/* 13 */    0x04,
+/* 14 */    0x48,
+/* 15 */    0x28,
+/* 16 */    0x24,
+/* 17 */    0x00,
+/* 18 */    0x74,
+/* 19 */    0x60,
+/* 20 */    0x58,
+/* 21 */    0x30,
+/* 22 */    0x70,
+/* 23 */    0x6C,
+/* 24 */    0x68,
+/* 25 */    0x64,
+/* 26 */    0x54,
+/* 27 */    0x50,
+/* 28 */    0x4C,
+/* 29 */    0x40,
+/* 30 */    0x5C
+};
+
+
 __IO uint32_t *get_iocon_by_port(uint8_t port)
 {
-  return (__IO uint32_t *)LPC_IOCON_BASE;
+  return (__IO uint32_t *)  (((uint8_t *)LPC_IOCON_BASE)+pio_to_iocon_offset[port]);
 }
 
 /*
+  Function:
+    void i2c_init(uint8_t clkdiv, uint8_t scl, uint8_t sda)
+
+  Description:
+    setup I2C0 as master. This function will enable all required clocks
+  
+  Parameter:
+    clkdiv: See below
+    scl: PIO port number for the clock line
+    sda: PIO port number for the data line
+  
   
   Nominal SCL rate = I2C function clock rate / 
   ( (CLKDIV + 1) * (MSTSCLHIGH + 2) + (CLKDIV + 1) * (MSTSCLLOW + 2) )
-
   Nominal SCL rate = I2C function clock rate / 
   ( (CLKDIV + 1) * (MSTSCLHIGH + MSTSCLLOW + 4) )
-
   Nominal SCL rate = I2C function clock rate / ( 4*CLKDIV + 4 )
-
   Nominal SCL rate * ( 4*CLKDIV + 4 ) = I2C function clock rate 
-
   Nominal SCL rate *  4*CLKDIV + Nominal SCL rate * 4  = I2C function clock rate 
   Nominal SCL rate *  4*CLKDIV = I2C function clock rate - Nominal SCL rate * 4
   CLKDIV = I2C function clock rate/(Nominal SCL rate *  4) - 1
@@ -90,11 +135,20 @@ __IO uint32_t *get_iocon_by_port(uint8_t port)
   12 Mhz		7		375 KHz
 
 */
-void i2c_init(uint8_t clkdiv)
+void i2c_init(uint8_t clkdiv, uint8_t scl, uint8_t sda)
 {
+  Enable_Periph_Clock(CLK_IOCON);
+  Enable_Periph_Clock(CLK_SWM);
   
   Enable_Periph_Clock(CLK_I2C0);
   Do_Periph_Reset(RESET_I2C0);
+  
+  *get_iocon_by_port(sda) |= 1<<IOCON_OD;
+  *get_iocon_by_port(scl) |= 1<<IOCON_OD;
+  map_function_to_port(I2C0_SDA, sda);
+  map_function_to_port(I2C0_SCL, scl);
+
+
   /*
     15 MHz, I2C Busclock 100MHz
       CLKDIV = 37 
@@ -103,11 +157,9 @@ void i2c_init(uint8_t clkdiv)
   
   LPC_I2C0->CLKDIV = clkdiv;
   LPC_I2C0->MSTTIME = 0;
-  
-  
+    
   LPC_I2C0->CFG = CFG_MSTENA;
 
-  
 }
 
 /*
@@ -164,7 +216,10 @@ int i2c_write( uint8_t adr, uint8_t *buf, uint32_t  len )
   Description:
     Replacement for ConfigSWM(uint32_t func, uint32_t port_pin)
     This function will connect an internal signal to the specified GPIO port
-  
+
+  Precondition:
+    Enable_Periph_Clock(CLK_SWM);
+
   Parameter:
     fn: A function number, e.g. T0_MAT0, see swm.h
     port: A port number for the GPIO port (0..30)

@@ -37,6 +37,19 @@
 
 #include <stdint.h>
 
+
+/*
+  Usually you would do a 
+    LPC_IOCON->PIO0_7 
+  to access the IOCON register for PIO0_7
+  In cases, where you have only the number 7 this function will return the 
+  corresponding register:
+    *get_iocon_by_port(7)
+  is the same as the above statement.
+*/
+__IO uint32_t *get_iocon_by_port(uint8_t port) __attribute__((noinline));
+
+
 #define I2C_OK 0
 #define I2C_TIMEOUT_PRE_ADR 1
 
@@ -75,7 +88,7 @@
     Return:
       -
 */
-void i2c_init(uint8_t clkdiv);
+void i2c_init(uint8_t clkdiv, uint8_t scl, uint8_t sda);
 
 /*
   Parameter:

@@ -110,18 +110,12 @@ int __attribute__ ((noinline)) main(void)
   
   /* enable clock for several subsystems */
   Enable_Periph_Clock(CLK_IOCON);
-  Enable_Periph_Clock(CLK_SWM);
 
   /* systick alive blink */
   GPIOSetDir( PORT0, 15, OUTPUT);
   LPC_IOCON->PIO0_9 =  IOCON_RESERVED789 | MODE_PULLUP;
-  
-  LPC_IOCON->PIO0_14 |= 1<<IOCON_OD;
-  LPC_IOCON->PIO0_7 |= 1<<IOCON_OD;
-  map_function_to_port(I2C0_SDA, 14);
-  map_function_to_port(I2C0_SCL, 7);
 
-  i2c_init(9);
+  i2c_init( /*CLKDIV=*/ 9, /*SCL=*/ 7, /*SDA=*/ 14);
 
   {
     uint8_t buf[1] = { 0x0af };
