@@ -10,6 +10,7 @@ jobs:
     steps:
       - name: Display the path
         run: echo $PWD
+        working-directory: ./lpc804_plu/tools/hex2lpc8xx
         shell: bash
       - name: ls
         run: ls
