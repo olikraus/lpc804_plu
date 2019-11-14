@@ -8,6 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: make
-      working-directory: ./tools/hex2lpc8xx
-      run: echo `pwd`
+      - name: Display the path
+        run: echo $PATH
+        shell: bash
+      - name: make
+        working-directory: ./tools/hex2lpc8xx
+        run: echo `pwd`
+        shell: bash
