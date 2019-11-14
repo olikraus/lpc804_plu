@@ -2,7 +2,8 @@
 # https://help.github.com/en/actions/automating-your-workflow-with-github-actions
 # syntax description:
 # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/workflow-syntax-for-github-actions
-#
+# commit
+# https://github.community/t5/GitHub-Actions/how-does-one-commit-from-an-action/td-p/30333
 
 name: hex2lpc8xx build
 
