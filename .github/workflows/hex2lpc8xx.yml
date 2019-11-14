@@ -9,7 +9,7 @@ jobs:
     
     steps:
       - name: Display the path
-        run: echo $PATH
+        run: echo $PWD
         shell: bash
       - name: make
         working-directory: ./tools/hex2lpc8xx
