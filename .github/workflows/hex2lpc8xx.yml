@@ -1,0 +1,27 @@
+# toplevel help page:
+# https://help.github.com/en/actions/automating-your-workflow-with-github-actions
+# syntax description:
+# https://help.github.com/en/actions/automating-your-workflow-with-github-actions/workflow-syntax-for-github-actions
+#
+
+name: hex2lpc8xx build
+
+on:
+  push:
+    paths: 
+      - 'tools/hex2lpc8xx/*'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v1
+      - name: Display the path
+        run: |
+          echo $PWD
+          make
+          ls
+        working-directory: ${{ github.workspace }}/tools/hex2lpc8xx
+        shell: bash
