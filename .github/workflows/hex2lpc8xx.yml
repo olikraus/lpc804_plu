@@ -10,6 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Display the path
+        working-directory: ${{ github.workspace }}
         run: echo $PWD
         shell: bash
       - name: ls
