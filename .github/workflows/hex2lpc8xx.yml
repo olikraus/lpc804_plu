@@ -13,5 +13,5 @@ jobs:
         shell: bash
       - name: make
         working-directory: ./tools/hex2lpc8xx
-        run: echo $PWD`
+        run: echo $PWD
         shell: bash
