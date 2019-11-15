@@ -132,10 +132,7 @@ uint8_t u8x8_gpio_and_delay_lpc804_only_delay(u8x8_t *u8x8, uint8_t msg, uint8_t
 /*
   template from https://github.com/olikraus/u8g2/wiki/Porting-to-new-MCU-platform
 
-  assumes that the I2C0 outputs are mapped to the pins:
-    mapFunctionToPort(I2C0_SDA, 14);
-    mapFunctionToPort(I2C0_SCL, 7);
-
+  assumes a call to i2c_init() 
 
 */
 uint8_t u8x8_byte_lpc804_i2c(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr)

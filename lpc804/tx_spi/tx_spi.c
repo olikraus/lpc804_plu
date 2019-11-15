@@ -1,10 +1,21 @@
+/*
 
-#include <LPC8xx.h>
-#include <syscon.h>
-#include <gpio.h>
-#include <swm.h>
-#include <spi.h>
-#include <delay.h>
+  tx_spi.c
+  
+  Show the SPI output via LEDs: 
+      Clock @ PIO0_15, Data @ PIO0_9
+      Button @ PIO0_2 will put data into SPI
+      
+  SPI output is below 1Hz to observe the output
+
+*/
+#include "LPC8xx.h"
+#include "syscon.h"
+#include "gpio.h"
+#include "swm.h"
+#include "spi.h"
+#include "delay.h"
+#include "util.h"
 
 
 /*=======================================================================*/
@@ -25,22 +36,6 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
   sys_tick_irq_cnt++;
 }
 
-/*=======================================================================*/
-/* 
-  replacement for ConfigSWM(uint32_t func, uint32_t port_pin) 
-  
-  Args:
-    fn: A function number, e.g. T0_MAT0, see swm.h
-    port: A port number for the GPIO port (0..30)
-
-*/
-void mapFunctionToPort(uint32_t fn, uint32_t port)
-{
-  /* first reset the pin assignment to 0xff (this is also the reset value */
-  LPC_SWM->PINASSIGN[fn/4] |= ((0xffUL)<<(8*(fn%4)));
-  /* then write the destination pin to it */
-  LPC_SWM->PINASSIGN[fn/4] &= ~((port^255UL)<<(8*(fn%4)));
-}
 /*=======================================================================*/
 /*
   setup the hardware and start interrupts.
@@ -72,8 +67,8 @@ int __attribute__ ((noinline)) main(void)
 
   GPIOSetDir( PORT0, 2, INPUT);
 
-  mapFunctionToPort(SPI0_SCK, 15);
-  mapFunctionToPort(SPI0_MOSI, 9);
+  map_function_to_port(SPI0_SCK, 15);
+  map_function_to_port(SPI0_MOSI, 9);
   
   
   

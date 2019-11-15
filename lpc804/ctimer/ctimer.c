@@ -13,13 +13,13 @@
 */
 
 
-#include <LPC8xx.h>
-#include <iocon.h>
-#include <syscon.h>
-#include <gpio.h>
-#include <swm.h>
-#include <ctimer.h>
-#include <delay.h>
+#include "LPC8xx.h"
+#include "iocon.h"
+#include "syscon.h"
+#include "gpio.h"
+#include "swm.h"
+#include "ctimer.h"
+#include "delay.h"
 
 
 /*=======================================================================*/
@@ -39,24 +39,6 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
 {  
   sys_tick_irq_cnt++;
 }
-
-/*=======================================================================*/
-/* 
-  replacement for ConfigSWM(uint32_t func, uint32_t port_pin) 
-  
-  Args:
-    fn: A function number, e.g. T0_MAT0, see swm.h
-    port: A port number for the GPIO port (0..30)
-
-*/
-void mapFunctionToPort(uint32_t fn, uint32_t port)
-{
-  /* first reset the pin assignment to 0xff (this is also the reset value */
-  LPC_SWM->PINASSIGN[fn/4] |= ((0xffUL)<<(8*(fn%4)));
-  /* then write the destination pin to it */
-  LPC_SWM->PINASSIGN[fn/4] &= ~((port^255UL)<<(8*(fn%4)));
-}
-
 
 /*=======================================================================*/
 int __attribute__ ((noinline)) main(void)
@@ -89,9 +71,9 @@ int __attribute__ ((noinline)) main(void)
   
   /* connect subsystems to the GPIOs */
   /* Just for testing: The signal is routed via PIN0_30 */
-  mapFunctionToPort(T0_MAT0, 30);
-  mapFunctionToPort(LVLSHFT_IN0, 30);  
-  mapFunctionToPort(LVLSHFT_OUT0, 15);
+  map_function_to_port(T0_MAT0, 30);
+  map_function_to_port(LVLSHFT_IN0, 30);  
+  map_function_to_port(LVLSHFT_OUT0, 15);
 
   /* enable the timer */
   LPC_CTIMER0->TCR |= 1<<CEN;

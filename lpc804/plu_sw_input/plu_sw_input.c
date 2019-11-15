@@ -65,13 +65,14 @@
 */
 
 
-#include <LPC8xx.h>
-#include <iocon.h>
-#include <syscon.h>
-#include <gpio.h>
-#include <swm.h>
-#include <ctimer.h>
-#include <delay.h>
+#include "LPC8xx.h"
+#include "iocon.h"
+#include "syscon.h"
+#include "gpio.h"
+#include "swm.h"
+#include "ctimer.h"
+#include "delay.h"
+#include "util.h"
 
 
 /*=======================================================================*/
@@ -91,24 +92,6 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
 {  
   sys_tick_irq_cnt++;
 }
-
-/*=======================================================================*/
-/* 
-  replacement for ConfigSWM(uint32_t func, uint32_t port_pin) 
-  
-  Args:
-    fn: A function number, e.g. T0_MAT0, see swm.h
-    port: A port number for the GPIO port (0..30)
-
-*/
-void mapFunctionToPort(uint32_t fn, uint32_t port)
-{
-  /* first reset the pin assignment to 0xff (this is also the reset value */
-  LPC_SWM->PINASSIGN[fn/4] |= ((0xffUL)<<(8*(fn%4)));
-  /* then write the destination pin to it */
-  LPC_SWM->PINASSIGN[fn/4] &= ~((port^255UL)<<(8*(fn%4)));
-}
-
 
 /*=======================================================================*/
 int __attribute__ ((noinline)) main(void)
@@ -167,9 +150,9 @@ int __attribute__ ((noinline)) main(void)
   
   
   /* read from PIO0_2 */
-  mapFunctionToPort(LVLSHFT_IN0, 2);
+  map_function_to_port(LVLSHFT_IN0, 2);
   /* write to PIO0_10 */
-  mapFunctionToPort(LVLSHFT_OUT0, 10);
+  map_function_to_port(LVLSHFT_OUT0, 10);
 
   /* Assign LUT0 output to PLU output 1: Let OUTPUT1 read from LUT 0 */
 
