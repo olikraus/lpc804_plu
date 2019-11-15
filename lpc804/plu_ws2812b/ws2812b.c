@@ -12,13 +12,14 @@
 */
 
 
-#include <LPC8xx.h>
-#include <iocon.h>
-#include <syscon.h>
-#include <gpio.h>
-#include <swm.h>
-#include <spi.h>
-#include <delay.h>
+#include "LPC8xx.h"
+#include "iocon.h"
+#include "syscon.h"
+#include "gpio.h"
+#include "swm.h"
+#include "spi.h"
+#include "delay.h"
+#include "util.h"
 
 /*=======================================================================*/
 /* externals */
@@ -43,28 +44,13 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
 }
 
 /*=======================================================================*/
-/* 
-  replacement for ConfigSWM(uint32_t func, uint32_t port_pin) 
-  
-  Args:
-    fn: A function number, e.g. T0_MAT0, see swm.h
-    port: A port number for the GPIO port (0..30)
-
-*/
-void mapFunctionToPort(uint32_t fn, uint32_t port)
-{
-  /* first reset the pin assignment to 0xff (this is also the reset value */
-  LPC_SWM->PINASSIGN[fn/4] |= ((0xffUL)<<(8*(fn%4)));
-  /* then write the destination pin to it */
-  LPC_SWM->PINASSIGN[fn/4] &= ~((port^255UL)<<(8*(fn%4)));
-}
 
 void spi_init(void)
 {
   Enable_Periph_Clock(CLK_SPI0);
   
-  mapFunctionToPort(SPI0_SCK, 9);
-  mapFunctionToPort(SPI0_MOSI, 11);
+  map_function_to_port(SPI0_SCK, 9);
+  map_function_to_port(SPI0_MOSI, 11);
   
   LPC_SYSCON->SPI0CLKSEL = FCLKSEL_MAIN_CLK;	
   LPC_SPI0->DIV = 24;	/* 22 still seems to work */
@@ -235,7 +221,7 @@ void ccs_seek(ccs_t *ccs, int16_t pos)
 int __attribute__ ((noinline)) main(void)
 {
   uint8_t a[] = { 0, 0x3c, 0,  0, 0, 0x3c};
-  int h;
+  int h = 0;
   ccs_t ccs_v;
   int is_v_up = 1;
   int i;
