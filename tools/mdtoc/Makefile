@@ -18,4 +18,4 @@ clean:
 	-rm tmp.md ./mdtoc
 
 wiki:	mdtoc
-	./mdtoc  ../../../u8g2.wiki/*.md
+	./mdtoc  ../../../lpc804_plu.wiki/*.md
