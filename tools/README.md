@@ -14,6 +14,8 @@ A small and reliable ISP upload tool for the LPC804. Linux only.
 Fast ISP upload tool for LPC804, Windows and Linux. Manual 
 start of the code is required by putting the target device into none-ISP mode.
 
+A comparison between lpc21isp and hex2lpc8xx is [here](https://drolliblog.wordpress.com/2019/10/03/isp-upload-for-the-nxp-lpc804/).
+
 ### pluc
 
 "pluc" is the PLU Compiler tool, developed as part of this project. 
