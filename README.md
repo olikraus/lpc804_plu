@@ -14,6 +14,10 @@ This project requires the arm gcc crosscompiler. It is available here:
 
 https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm
 
+A description of the LPC804 toolchain is here:
+
+https://drolliblog.wordpress.com/2019/10/04/nxp-lpc804-toolchain-and-blink-project/
+
 ## Directory structure
 
  * `lpc804`: All the examples for the NXP LPC804
