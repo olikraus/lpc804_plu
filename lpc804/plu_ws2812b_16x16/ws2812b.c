@@ -302,9 +302,18 @@ void calc_p(led_matrix_t *lm) __attribute__((noinline));
 void calc_p(led_matrix_t *lm)
 {
   uint16_t o;
+  uint8_t x;
+  
+  /* matrix has a snake kind of pattern */
+  x = lm->p_x;
+  if ( (lm->p_y & 1)==0 )
+  {
+    x = LED_WIDTH-1-lm->p_x;
+  }
+  
   o = lm->p_y;
-  o *=LED_WIDTH;
-  o+=lm->p_x*3;
+  o *=LED_WIDTH*3;
+  o+=x*3;
   lm->p = led_matrix_buffer;
   lm->p += o;
 }
@@ -367,27 +376,27 @@ void draw_all(led_matrix_t *lm)
 }
 
 /*
-  in: r_x, r_y, w
+  in: l_x, l_y, l_w, lm->l_rgba[0], lm->l_rgba[1]
 */
 void draw_color_line(led_matrix_t *lm)
 {
   uint8_t i, j;
   for( i = 0; i < 4; i++ )
   {
-    ccs_init( lm->l_ccs+i, lm->l_rgba[0][i], lm->l_rgba[1][i], lm->l_w-1 );
+    ccs_init( lm->l_ccs+i, lm->l_rgba[0][i], lm->l_rgba[1][i], lm->l_w );
   }
   lm->p_x = lm->l_x;
   lm->p_y = lm->l_y;
-  calc_p(lm);
   for( j = 0; j < lm->l_w; j++ )
   {
-    
     for( i = 0; i < 4; i++ )
     {
       lm->p_rgba[i] = lm->l_ccs[i].current;
-      ccs_step(lm->l_ccs+i);
+      ccs_step(lm->l_ccs+i);      
     }
+    calc_p(lm);
     draw_pixel(lm);
+    lm->p_x++;
   }
 }
 
@@ -396,15 +405,14 @@ void draw_color_box(led_matrix_t *lm)
   uint8_t i, j;
   for( i = 0; i < 4; i++ )
   {
-    ccs_init( lm->b_ccs0+i, lm->b_rgba[0][i], lm->b_rgba[2][i], lm->b_h-1 );
-    ccs_init( lm->b_ccs1+i, lm->b_rgba[1][i], lm->b_rgba[3][i], lm->b_h-1 );
+    ccs_init( lm->b_ccs0+i, lm->b_rgba[0][i], lm->b_rgba[2][i], lm->b_h );
+    ccs_init( lm->b_ccs1+i, lm->b_rgba[1][i], lm->b_rgba[3][i], lm->b_h );
   }
   lm->l_y = lm->b_y;
   lm->l_x = lm->b_x;
   lm->l_w = lm->b_w;
   for( j = 0; j < lm->b_h; j++ )
   {
-    lm->l_y += 1;
     for( i = 0; i < 4; i++ )
     {
       lm->l_rgba[0][i] = lm->b_ccs0[i].current;
@@ -413,6 +421,7 @@ void draw_color_box(led_matrix_t *lm)
       ccs_step(lm->b_ccs1+i);
     }    
     draw_color_line(lm);
+    lm->l_y += 1;
     
   }
 }
@@ -424,8 +433,6 @@ int __attribute__ ((noinline)) main(void)
   
   int h = 0;
   ccs_t ccs_v;
-  int is_v_up = 1;
-  int i;
   /* call to the lpc lib setup procedure. This will set the IRC as clk src and main clk to 24 MHz */
   SystemInit(); 
 
@@ -442,7 +449,6 @@ int __attribute__ ((noinline)) main(void)
 
   delay_micro_seconds(50);
   ccs_init(&ccs_v, 40, 100, 27);
-  is_v_up = 1;
   for(;;)
   {
     h+=2;	
@@ -463,10 +469,54 @@ int __attribute__ ((noinline)) main(void)
       }
     }
     */
-    hsv_to_rgb(h, 255, 16, lm.p_rgba+0, lm.p_rgba+1, lm.p_rgba+2);
+    hsv_to_rgb(h, 255, 32, lm.p_rgba+0, lm.p_rgba+1, lm.p_rgba+2);
     lm.p_rgba[3] = 255;
+
+    /*
+    lm.p_x = 0;
+    lm.p_y = 0;    
+    calc_p(&lm); draw_pixel(&lm); 
   
-    draw_all(&lm);
+    lm.p_x = 1;
+    lm.p_y = 1;    
+    calc_p(&lm); draw_pixel(&lm);
+
+    lm.p_x = 2;
+    lm.p_y = 2;    
+    calc_p(&lm); draw_pixel(&lm);
+
+    lm.p_x = 3;
+    lm.p_y = 3;    
+    calc_p(&lm); draw_pixel(&lm);
+
+    lm.l_x = 0;
+    lm.l_y = 5;
+    lm.l_w = 16;
+
+    hsv_to_rgb(h, 255, 32, &(lm.l_rgba[0][0]), &(lm.l_rgba[0][1]), &(lm.l_rgba[0][2]));
+    lm.l_rgba[0][3] = 255;
+    hsv_to_rgb(h+64, 255, 32, &(lm.l_rgba[1][0]), &(lm.l_rgba[1][1]), &(lm.l_rgba[1][2]));
+    lm.l_rgba[1][3] = 255;
+    draw_color_line(&lm);
+    */
+
+
+    lm.b_x = 0;
+    lm.b_y = 0;
+    lm.b_w = 16;
+    lm.b_h = 16;
+
+    hsv_to_rgb(h, 255, 32, &(lm.b_rgba[0][0]), &(lm.b_rgba[0][1]), &(lm.b_rgba[0][2]));
+    hsv_to_rgb(h+64, 255, 32, &(lm.b_rgba[1][0]), &(lm.b_rgba[1][1]), &(lm.b_rgba[1][2]));
+    hsv_to_rgb(255-h, 255, 32, &(lm.b_rgba[2][0]), &(lm.b_rgba[2][1]), &(lm.b_rgba[2][2]));
+    hsv_to_rgb(255-h+64, 255, 32, &(lm.b_rgba[3][0]), &(lm.b_rgba[3][1]), &(lm.b_rgba[3][2]));
+    lm.b_rgba[0][3] = 255;
+    lm.b_rgba[1][3] = 255;
+    lm.b_rgba[2][3] = 255;
+    lm.b_rgba[3][3] = 255;
+    draw_color_box(&lm);
+
+    //draw_all(&lm);
     //limit_current(lm, 38250);
     limit_current(&lm, 30000);
     spi_out(led_matrix_buffer, 3*LED_WIDTH*LED_HEIGHT);
