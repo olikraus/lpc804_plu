@@ -37,12 +37,16 @@
   
 */
 
+#include <stddef.h>
 #include "LPC8xx.h"
 #include "syscon.h"
 #include "iocon.h"
 #include "swm.h"
 #include "i2c.h"
+#include "uart.h"
 #include "util.h"
+
+/*====================================================*/
 
 /*
   Usually you would do a 
@@ -94,6 +98,8 @@ __IO uint32_t *get_iocon_by_port(uint8_t port)
 {
   return (__IO uint32_t *)  (((uint8_t *)LPC_IOCON_BASE)+pio_to_iocon_offset[port]);
 }
+
+/*====================================================*/
 
 /*
   Function:
@@ -214,6 +220,239 @@ int i2c_write( uint8_t adr, uint8_t *buf, uint32_t  len )
   return I2C_OK;
 }
 
+/*====================================================*/
+/* ring buffer implementation */
+
+
+/* ring buffer */
+
+/* 
+  Prototype:
+    void rb_clear(rb_t *rb)
+
+  Description:
+    Clear the data in the ring buffer.
+
+  Precondition:
+    rb_init() must be called on the "rb" argument.
+
+  Parameter:
+    rb: 	Address of a (initialized) buffer data structure
+
+*/
+
+void rb_clear(rb_t *rb)
+{
+  rb->start = 0;
+  rb->end = 0;
+}
+
+/* 
+  Prototype:
+    void rb_init(rb_t *rb, uint8_t *buf, uint16_t len)
+
+  Description:
+    Prepares a ring (first in first out) buffer. 
+
+  Parameter:
+    rb: 	Address of a (uninitialized) buffer data structure
+    buf:	Memory location large enough for "len" bytes
+    len:	Size of the ring buffer. 
+
+  Example:
+
+    rb_t usart_rx_ring_buffer;
+    uint8_t usart_rx_buf[32];
+    ...
+    rb_init(&usart_rx_ring_buffer, usart_rx_buf, 32);
+
+*/
+void rb_init(rb_t *rb, uint8_t *buf, uint16_t len)
+{
+  rb->ptr = buf;
+  rb->len = len;
+  rb_clear(rb);
+}
+
+uint16_t rb_next_val(rb_t *rb, uint16_t val)
+{
+  val++;
+  if ( val >= rb->len )
+    val = 0;
+  return val;
+}
+
+/* 
+  Prototype:
+    int rb_add(rb_t *rb, uint8_t data)
+
+  Description:
+    Add a byte to the ring buffer.
+
+  Precondition:
+    rb_init() must be called on the "rb" argument.
+
+  Parameter:
+    rb: 	Address of a (initialized) buffer data structure
+    data:	8 bit value, which should be stored in the ring buffer
+
+  Return:
+    0:	Data not stored, ring buffer is full
+    1:	all ok
+    
+*/
+int rb_add(rb_t *rb, uint8_t data)
+{
+  uint32_t primask;
+  uint16_t end;
+  
+  primask = __get_PRIMASK();	/* get the interrupt status */
+  __disable_irq();			/* disable IRQs, this will modify PRIMASK */
+  
+  end = rb_next_val(rb, rb->end);
+  if ( end == rb->start )
+    return __set_PRIMASK(primask), 0; /* restore interrupt state & return error */
+  rb->ptr[rb->end] = data;
+  rb->end = end;
+  __set_PRIMASK(primask);	/* restore interrupt state */
+  return 1;
+}
+
+/* 
+  Prototype:
+    int rb_get(rb_t *rb)
+
+  Description:
+    Get data out of the ring buffer and remove this data item from the ring buffer.
+
+  Precondition:
+    rb_init() must be called on the "rb" argument.
+
+  Parameter:
+    rb: 	Address of a (initialized) buffer data structure
+
+  Return:
+    -1 if there is no data available, otherwise the data which was added before.
+    
+*/
+int rb_get(rb_t *rb)
+{
+  uint32_t primask;
+  int data;
+  if ( rb->end == rb->start )
+    return -1;
+  
+  primask = __get_PRIMASK();	/* get the interrupt status */
+  __disable_irq();			/* disable IRQs, this will modify PRIMASK */
+  
+  data = rb->ptr[rb->start];
+  rb->start = rb_next_val(rb, rb->start);
+  __set_PRIMASK(primask);	/* restore interrupt state */
+
+  return data;  
+}
+
+
+
+
+/*====================================================*/
+
+
+
+/*
+
+  BRGVAL=5 		--> 115274.51935
+  BRGVAL=11		--> 57637.25967
+  BRGVAL=23		--> 28818.62983
+  BRGVAL=47		--> 14409.31491
+  BRGVAL=71		--> 9606.20994
+  BRGVAL=575	--> 1200.77
+
+  fclk = 15000000/(1+91/256) = 11066353.85773
+  baud rate = 11066353.85773 / (16 * (BRGVAL+1)).
+
+  8-N-1 configuration: Eight (8) data bits, no (N) parity bit, and one (1) stop bit
+
+*/
+
+void usart_init(LPC_USART_TypeDef * usart, uint32_t brgval)
+{
+  usart->BRG = brgval;
+  usart->OSR = 15;
+  
+  usart->CTL = 0;
+  usart->INTENSET = RXRDY;		/* enable RXRDY interrupt */
+  
+  usart->CFG =  UART_EN | DATA_LENG_8 | PARITY_NONE | STOP_BIT_1;
+}
+
+rb_t usart_rx_ring_buffer;
+uint8_t usart_rx_buf[32];
+
+LPC_USART_TypeDef   *usart0_init(uint32_t brgval, uint8_t tx, uint8_t rx)
+{
+  
+  //Enable_Periph_Clock(CLK_IOCON);
+  Enable_Periph_Clock(CLK_SWM);
+  
+  LPC_SYSCON->FRG0DIV = 255;
+  LPC_SYSCON->FRG0MULT = 91;
+  LPC_SYSCON->FRG0CLKSEL = FRGCLKSEL_MAIN_CLK;
+
+  Enable_Periph_Clock(CLK_UART0);
+  Do_Periph_Reset(RESET_UART0);  
+ 
+  //*get_iocon_by_port(tx) = ..;
+  //*get_iocon_by_port(rxl) = ..;
+  map_function_to_port(U0_TXD, tx);
+  map_function_to_port(U0_RXD, rx);
+
+  
+  LPC_SYSCON->UART0CLKSEL = FCLKSEL_FRG0CLK;
+  //LPC_SYSCON->UART1CLKSEL = FCLKSEL_FRG0CLK;
+  
+  usart_init( LPC_USART0, brgval);
+  
+  rb_init(&usart_rx_ring_buffer, usart_rx_buf, 32);
+
+
+  NVIC_EnableIRQ(UART0_IRQn);
+
+  return LPC_USART0;
+}
+
+void __attribute__ ((interrupt)) UART0_Handler(void)
+{
+  if ( (LPC_USART0->STAT & RXRDY) != 0 )
+  {
+    rb_add(&usart_rx_ring_buffer, LPC_USART0->RXDAT);
+  }
+}
+
+
+void usart_write_byte(LPC_USART_TypeDef * usart, uint8_t data)
+{
+  while( (usart->STAT & TXRDY) == 0 )
+    ;
+  usart->TXDAT = data;
+}
+
+void usart_write_string(LPC_USART_TypeDef * usart, char *s)
+{
+  if ( s == NULL )
+    return;
+  while( *s != '\0' )
+    usart_write_byte(usart, *s++);
+}
+
+int usart_read_byte(void)
+{
+  return rb_get(&usart_rx_ring_buffer);
+}
+
+
+
+/*====================================================*/
 
 
 /* 

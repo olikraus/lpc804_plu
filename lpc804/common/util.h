@@ -35,7 +35,26 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include "LPC8xx.h"
 #include <stdint.h>
+
+
+/*
+  ring buffer
+*/
+struct _rb_struct
+{
+  uint8_t *ptr;  
+  uint16_t start;
+  uint16_t end;
+  uint16_t len;
+};
+typedef struct _rb_struct rb_t;
+
+/*
+  usart 
+*/
+
 
 
 /*
@@ -99,6 +118,76 @@ void i2c_init(uint8_t clkdiv, uint8_t scl, uint8_t sda);
     Error code (see above) or I2C_OK if everything was sent.
 */
 int i2c_write(uint8_t adr, uint8_t *buf, uint32_t len);
+
+
+
+/* 
+  Prototype:
+    void rb_init(rb_t *rb, uint8_t *buf, uint16_t len)
+
+  Description:
+    Prepares a ring (first in first out) buffer. 
+
+  Parameter:
+    rb: 	Address of a (uninitialized) buffer data structure
+    buf:	Memory location large enough for "len" bytes
+    len:	Size of the ring buffer. 
+
+  Example:
+
+    rb_t usart_rx_ring_buffer;
+    uint8_t usart_rx_buf[32];
+    ...
+    rb_init(&usart_rx_ring_buffer, usart_rx_buf, 32);
+
+*/
+void rb_init(rb_t *rb, uint8_t *buf, uint16_t len);
+
+/* 
+  Prototype:
+    int rb_add(rb_t *rb, uint8_t data)
+
+  Description:
+    Add a byte to the ring buffer.
+
+  Precondition:
+    rb_init() must be called on the "rb" argument.
+
+  Parameter:
+    rb: 	Address of a (initialized) buffer data structure
+    data:	8 bit value, which should be stored in the ring buffer
+
+  Return:
+    0:	Data not stored, ring buffer is full
+    1:	all ok
+    
+*/
+int rb_add(rb_t *rb, uint8_t data);
+
+/* 
+  Prototype:
+    int rb_get(rb_t *rb)
+
+  Description:
+    Get data out of the ring buffer and remove this data item from the ring buffer.
+
+  Precondition:
+    rb_init() must be called on the "rb" argument.
+
+  Parameter:
+    rb: 	Address of a (initialized) buffer data structure
+
+  Return:
+    -1 if there is no data available, otherwise the data which was added before.
+    
+*/
+int rb_get(rb_t *rb);
+
+
+LPC_USART_TypeDef   *usart0_init(uint32_t brgval, uint8_t tx, uint8_t rx);
+void usart_write_byte(LPC_USART_TypeDef * usart, uint8_t data);
+void usart_write_string(LPC_USART_TypeDef * usart, char *s);
+int usart_read_byte(void);
 
 
 /* 

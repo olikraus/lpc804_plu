@@ -34,7 +34,7 @@ GCCBINPATH:=/usr/bin/
 # Project Information
 
 # The name for the project
-TARGETNAME:=uart_test.c
+TARGETNAME:=uart_test
 
 # The source files of the project
 SRC:=$(wildcard *.c)
@@ -98,8 +98,9 @@ CFLAGS:=$(COMMON_FLAGS) -std=gnu99
 GC:=-Wl,--gc-sections  -Wl,--undefined=arm_stack_area -Wl,--undefined=__isr_vector
 MAP:=-Wl,-Map=$(MAPNAME)
 LFLAGS:=$(COMMON_FLAGS) $(GC) $(MAP)
-#LDLIBS:=--specs=nano.specs -L$(LDSCRIPTDIR) -T $(LDSCRIPT)
-LDLIBS:=--specs=nosys.specs -L$(LDSCRIPTDIR) -T $(LDSCRIPT)
+LDLIBS:=--specs=nano.specs -L$(LDSCRIPTDIR) -T $(LDSCRIPT)
+# nano specs requres lesser ram than nosys.specs...
+#LDLIBS:=--specs=nosys.specs -L$(LDSCRIPTDIR) -T $(LDSCRIPT)
 
 # Additional Suffixes
 .SUFFIXES: .elf .hex .bin .dis
