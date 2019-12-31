@@ -134,6 +134,9 @@ __IO uint32_t *get_iocon_by_port(uint8_t port)
   15 Mhz		9		375 KHz  
   12 Mhz		29		100 KHz
   12 Mhz		7		375 KHz
+  
+  This setup does not use the fractional generator: 
+  USART and I2C can be used in parallel
 
 */
 void i2c_init(uint8_t clkdiv, uint8_t scl, uint8_t sda)
