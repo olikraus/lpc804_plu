@@ -386,11 +386,13 @@ void usart_init(LPC_USART_TypeDef * usart, uint32_t brgval)
   usart->CFG =  UART_EN | DATA_LENG_8 | PARITY_NONE | STOP_BIT_1;
 }
 
-rb_t usart_rx_ring_buffer;
-uint8_t usart_rx_buf[32];
+usart_t *usart0_struct_ptr;	// only for the IRQ handler
 
-LPC_USART_TypeDef   *usart0_init(uint32_t brgval, uint8_t tx, uint8_t rx)
+void usart0_init(usart_t *usart, uint32_t brgval, uint8_t tx, uint8_t rx, uint8_t *rx_buf, uint16_t rx_len)
 {
+  usart0_struct_ptr = usart;
+  usart->usart = LPC_USART0;
+  rb_init(&(usart->rb), rx_buf, rx_len);
   
   //Enable_Periph_Clock(CLK_IOCON);
   Enable_Periph_Clock(CLK_SWM);
@@ -413,31 +415,26 @@ LPC_USART_TypeDef   *usart0_init(uint32_t brgval, uint8_t tx, uint8_t rx)
   
   usart_init( LPC_USART0, brgval);
   
-  rb_init(&usart_rx_ring_buffer, usart_rx_buf, 32);
-
-
   NVIC_EnableIRQ(UART0_IRQn);
-
-  return LPC_USART0;
 }
 
 void __attribute__ ((interrupt)) UART0_Handler(void)
 {
-  if ( (LPC_USART0->STAT & RXRDY) != 0 )
+  if ( (usart0_struct_ptr->usart->STAT & RXRDY) != 0 )
   {
-    rb_add(&usart_rx_ring_buffer, LPC_USART0->RXDAT);
+    rb_add(&(usart0_struct_ptr->rb), usart0_struct_ptr->usart->RXDAT);
   }
 }
 
 
-void usart_write_byte(LPC_USART_TypeDef * usart, uint8_t data)
+void usart_write_byte(usart_t *usart, uint8_t data)
 {
-  while( (usart->STAT & TXRDY) == 0 )
+  while( (usart->usart->STAT & TXRDY) == 0 )
     ;
-  usart->TXDAT = data;
+  usart->usart->TXDAT = data;
 }
 
-void usart_write_string(LPC_USART_TypeDef * usart, char *s)
+void usart_write_string(usart_t *usart, char *s)
 {
   if ( s == NULL )
     return;
@@ -445,9 +442,9 @@ void usart_write_string(LPC_USART_TypeDef * usart, char *s)
     usart_write_byte(usart, *s++);
 }
 
-int usart_read_byte(void)
+int usart_read_byte(usart_t *usart)
 {
-  return rb_get(&usart_rx_ring_buffer);
+  return rb_get(&(usart0_struct_ptr->rb));
 }
 
 

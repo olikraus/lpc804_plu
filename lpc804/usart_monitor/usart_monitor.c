@@ -1,13 +1,15 @@
 /*
 
-  uart_test.c
+  uart_monitor.c
 
-  This example will sent "Hello World\n" via USART0 interface.
   
-  Configuration is 115200 8-N-1. Only "\n" is sent. Receiving terminal should add \r
-  (e.g. use add CR function in "minicom")
+  Configuration is 115200 8-N-1. 
+  "\r\n" will be sent. 
   
-  Received chars are echoed back enclosed in "<?>" once per second.
+  commands:
+  lb <adr>		list bytes
+  lw <adr>		list words
+  lq <adr>		list 32bit words
 
 */
 
@@ -19,6 +21,7 @@
 #include <uart.h>
 #include <delay.h>
 #include <util.h>
+#include "ep.h"
 
 
 /*=======================================================================*/
@@ -47,12 +50,50 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
   setup the hardware and start interrupts.
   called by "Reset_Handler"
 */
+
+usart_t usart;
+uint8_t usart_rx_buf[32];
+ep_t ep;
+
+#define EP_LINE_MAX 128
+char ep_line_buf[EP_LINE_MAX];
+int ep_line_pos = 0;
+
+
+
+void ep_usart_write_byte(ep_t *ep, int c)
+{
+  usart_write_byte(&usart, c);
+}
+
+void ep_line_add_char(int c)
+{
+  /*
+  if ( ep_line_pos == 0 )
+    if ( c == '\r' || c == '\n' )
+      return;
+  */
+  if ( c == '\n' || c == '\r' )
+  {
+    ep_parse_cmd(&ep, ep_line_buf);
+    ep_line_pos = 0;
+    ep_line_buf[ep_line_pos] = '\0'; 
+
+    
+    return;
+  }
+  
+  if ( ep_line_pos >= EP_LINE_MAX-1 )
+    return;
+
+  ep_line_buf[ep_line_pos++] = c;
+  ep_line_buf[ep_line_pos] = '\0';
+}
+
 int __attribute__ ((noinline)) main(void)
 {
   int data;
 
-  usart_t usart;
-  uint8_t usart_rx_buf[32];
   
 
   /* call to the lpc lib setup procedure. This will set the IRC as clk src and main clk to 24 MHz */
@@ -63,8 +104,9 @@ int __attribute__ ((noinline)) main(void)
 
   /* set systick and start systick interrupt */
   SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
+
+  ep_init(&ep, ep_usart_write_byte);
   
-  /* */
   GPIOInit();
   
   /* enable clock for several subsystems */
@@ -76,22 +118,36 @@ int __attribute__ ((noinline)) main(void)
 
   GPIOSetDir( PORT0, 15, OUTPUT);
 
+  *(uint32_t *)0xE0002000 = 0x0ffffffff;
+  *(uint32_t *)0xE000EDFC |= 1<<24;	// enable DWT at 0x0e0001000
+  
+
   for(;;)
   {
     GPIOSetBitValue(PORT0, 15, 1);
-    delay_micro_seconds(1000000);
+    delay_micro_seconds(100000);
     GPIOSetBitValue(PORT0, 15, 0);
-    delay_micro_seconds(1000000);
-    usart_write_string(&usart, "Hello World\n");
-    
+    delay_micro_seconds(100000);    
     for(;;)
     {
       data = usart_read_byte(&usart);
       if ( data < 0 )
 	break;
-      usart_write_byte(&usart, '<');
-      usart_write_byte(&usart, data);
-      usart_write_byte(&usart, '>');
+      
+      if ( data == '\r' )
+	usart_write_byte(&usart, '\n');
+      if ( data == '\r' || data >= 32 )
+      {
+	usart_write_byte(&usart, data);
+	ep_line_add_char(data);
+      }
+      else
+      {
+	usart_write_byte(&usart, '{');
+	ep_out_num(&ep, data, 16, 2);
+	usart_write_byte(&usart, '}');
+      }
+	
     }
   }
 }
