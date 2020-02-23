@@ -3,7 +3,7 @@
   ws2812b.c
 
   PLU will be configured as SPI client. 
-  SPI clock should 800kHz: SPI clock div for the main clk can be 18 (833kHz) or 19 (789kHz)
+  SPI clock should be 800kHz: SPI clock div for the main clk can be 18 (833kHz) or 19 (789kHz)
   
   PLU configuration:
     sck: PIO0_22;
