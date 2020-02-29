@@ -192,8 +192,25 @@ int rb_get(rb_t *rb);
 
 void usart0_init(usart_t *usart, uint32_t brgval, uint8_t tx, uint8_t rx, uint8_t *rx_buf, uint16_t rx_len);
 void usart_write_byte(usart_t *usart, uint8_t data);
-void usart_write_string(usart_t *usart, char *s);
+void usart_write_string(usart_t *usart, const char *s);
 int usart_read_byte(usart_t *usart);		// returns -1 if there is no byte available
+
+/* 
+  Description:
+    Convert a 16 bit value to a decimal number.
+    
+  Parameter:
+    v: Unsigned 16 bit value, which should be converter.
+    
+  Return:
+    A pointer to a static buffer.
+
+  Example:
+    usart_write_string(&usart, u16toa(1234));
+    usart_write_string(&usart, "\r\n");
+
+*/
+const char *u16toa(uint16_t v);
 
 
 /* 

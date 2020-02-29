@@ -434,7 +434,7 @@ void usart_write_byte(usart_t *usart, uint8_t data)
   usart->usart->TXDAT = data;
 }
 
-void usart_write_string(usart_t *usart, char *s)
+void usart_write_string(usart_t *usart, const char *s)
 {
   if ( s == NULL )
     return;
@@ -447,6 +447,41 @@ int usart_read_byte(usart_t *usart)
   return rb_get(&(usart0_struct_ptr->rb));
 }
 
+
+/*====================================================*/
+
+static const char *u16toap(char * dest, uint16_t v)
+{
+  uint8_t pos;
+  uint8_t d;
+  uint16_t c;
+  c = 10000;
+  for( pos = 0; pos < 5; pos++ )
+  {
+      d = '0';
+      while( v >= c )
+      {
+	v -= c;
+	d++;
+      }
+      dest[pos] = d;
+      c /= 10;
+  }  
+  dest[5] = '\0';
+  return dest;
+}
+
+/* convert unsigned 16 bit value to decimal number */
+const char *u16toa(uint16_t v)
+{
+  static char buf[6];
+  const char *s = u16toap(buf, v);
+  while( *s == '0' )
+    s++;
+  if ( *s == '\0' )
+    s--;
+  return s;
+}
 
 
 /*====================================================*/
