@@ -41,15 +41,17 @@
 #include "LPC8xx.h"
 #include "syscon.h"
 #include "iocon.h"
+#include "gpio.h"
 #include "swm.h"
 #include "i2c.h"
 #include "uart.h"
+#include <adc.h>
 #include "util.h"
 
 /*====================================================*/
 
 /*
-  Usually you would do a 
+  Usually we would do a 
     LPC_IOCON->PIO0_7 
   to access the IOCON register for PIO0_7
   In cases, where you have only the number 7 this function will return the 
@@ -507,3 +509,140 @@ void map_function_to_port(uint32_t fn, uint32_t port)
   /* then write the destination pin to it */
   LPC_SWM->PINASSIGN[fn/4] &= ~((port^255UL)<<(8*(fn%4)));
 }
+
+/*====================================================*/
+
+static const uint8_t port_to_adc[17] = { 
+  255, 
+  0,		/* port 0_1 --> ADC_0 */
+  255,
+  255,
+  11,		/* port 0_4 --> ADC_11 */
+  255,
+  255,
+  1,		/* port 0_7 --> ADC_1 */
+  5,		/* port 0_8 --> ADC_5 */
+  4,		/* port 0_9 --> ADC_4 */
+  7,		/* port 0_10 --> ADC_7 */
+  6,		/* port 0_11 --> ADC_6 */
+  255,
+  10,		/* port 0_13 --> ADC_10 */
+  2,		/* port 0_14 --> ADC_2 */
+  8,		/* port 0_15 --> ADC_8 */
+  3		/* port 0_16 --> ADC_3 */
+};
+
+/* 
+
+  Prototype:
+    int16_t get_adc_by_port(uint8_t port)
+
+  Description:
+    Return the ADC number for the given GPIO port, e.g. return 5 (ADC_5) for GPIO 0_8.
+
+  Args:
+    port:	The port number (e.g. 8 for GPIO Port 0_8)
+
+  Return:
+    -1	if there is no ADC available for this port or the ADC number    
+
+*/
+int16_t get_adc_by_port(uint8_t port)
+{
+  uint8_t adc;
+  if ( port >= 17 )
+    return -1;
+  adc = port_to_adc[port];
+  if ( adc == 255 )
+    return -1;
+  return adc;
+}
+
+
+/* 
+
+  Prototype:
+    void adc_init(void)
+
+  Description:
+    Powerup ADC and enable clock for the ADC.
+    Finally put the ADC into low power mode.
+
+*/
+void adc_init(void)
+{
+
+  LPC_SYSCON->PDRUNCFG &= ~ADC_PD;	/* power up ADC */
+  LPC_SYSCON->ADCCLKSEL = 0;			/* FRO */
+  LPC_SYSCON->ADCCLKDIV = 1;			/* devide by 1 */
+  Enable_Periph_Clock(CLK_ADC);			/* enable clock for ADC */
+  __NOP();								/* probably not required */
+  LPC_ADC->CTRL = (1<<ADC_LPWRMODE) ;	
+    /* clkdiv=0, enable low power mode */
+}
+
+/* 
+
+  Prototype:
+    uint16_t adc_read(uint8_t port)
+
+  Precondition: SWM and GPIO clock must be enabled, adc_init() must be called
+
+  Descriptiion:
+    Read a 12 bit value from the specified GPIO port. Not all ports can be used as ADC input.
+    For any illegal port, this function will return 0x0ffff.
+    This function will also change the port to input, disable and pullup/pullodowns and 
+    enable the ADC on this port.
+
+  Note: If the pullup/pulldown is changed, then the result might be incorrect.
+    It may take several seconds until a stable voltage is reached after modifying the
+    LPC804 output resistors. Consider to disable the output resistors as early as possible
+    after reset:   *get_iocon_by_port(port) &= IOCON_MODE_MASK;
+
+  Args:
+    port:	The port number (e.g. 8 for GPIO Port 0_8)
+
+  Return: 
+    0xffff, if the port doesn't support ADC
+    0xfffe, if for a timeout on caused by the ADC (e.g. caused by a missing call to adc_init())
+    otherwise: 12 bit ADC result at the specified port (0..4095) 
+
+*/
+uint16_t adc_read(uint8_t port)
+{
+  uint32_t result;
+  uint32_t cnt = 0;
+  int16_t adc = get_adc_by_port(port);
+  if ( adc < 0 )
+    return 0xffff;	/* invalid pin */
+  
+  GPIOSetDir( PORT0, port, INPUT);
+  *get_iocon_by_port(port) &= IOCON_MODE_MASK;	/* clear any pullup/pulldown */
+  /* if any pullup/pulldown had been active, then it make take several seconds until a reliable voltage is available! */
+  
+  LPC_SWM->PINENABLE0 &= ~(1<<(adc+10));	/* ADC_0 is at bit 10 */
+
+  
+  LPC_ADC->SEQA_CTRL = 1<<adc 				/* select the adc, clear all other bits */
+    | (1<<ADC_TRIGPOL)						/* set the trigger polarity to low-high transition */
+    | (1<<ADC_SEQ_ENA);						/* enable sequence a processing */
+      
+  LPC_ADC->SEQA_CTRL |= (1<<ADC_START);		/* start the conversion */
+  
+  /* wait for the result */
+  for(;;)
+  {
+    result = LPC_ADC->DAT[adc];				/* read data reg, to clear the DATAVALID flag */
+    if ( (result & 0x80000000) != 0 )
+      break;
+    cnt++;									/* max 4 with 15 MHz */
+    if ( cnt >= 80 )							/* this is too much, return with timeout */
+      return 0x0fffe;
+  }
+  
+  LPC_ADC->CTRL = (1<<ADC_LPWRMODE) ;	
+  
+  return (result>>4) & 0x0fff;
+}
+
+/*=======================================================================*/

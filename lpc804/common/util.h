@@ -225,5 +225,63 @@ const char *u16toa(uint16_t v);
 */
 void map_function_to_port(uint32_t fn, uint32_t port);
 
+/* 
+
+  Prototype:
+    int16_t get_adc_by_port(uint8_t port)
+
+  Description:
+    Return the ADC number for the given GPIO port, e.g. return 5 (ADC_5) for GPIO 0_8.
+
+  Args:
+    port:	The port number (e.g. 8 for GPIO Port 0_8)
+
+  Return:
+    -1	if there is no ADC available for this port or the ADC number    
+
+*/
+int16_t get_adc_by_port(uint8_t port);
+
+/* 
+
+  Prototype:
+    void adc_init(void)
+
+  Description:
+    Powerup ADC and enable clock for the ADC.
+    Finally put the ADC into low power mode.
+
+*/
+void adc_init(void);
+
+/* 
+
+  Prototype:
+    uint16_t adc_read(uint8_t port)
+
+  Precondition: SWM and GPIO clock must be enabled, adc_init() must be called
+
+  Descriptiion:
+    Read a 12 bit value from the specified GPIO port. Not all ports can be used as ADC input.
+    For any illegal port, this function will return 0x0ffff.
+    This function will also change the port to input, disable and pullup/pullodowns and 
+    enable the ADC on this port.
+
+  Note: If the pullup/pulldown is changed, then the result might be incorrect.
+    It may take several seconds until a stable voltage is reached after modifying the
+    LPC804 output resistors. Consider to disable the output resistors as early as possible
+    after reset:   *get_iocon_by_port(port) &= IOCON_MODE_MASK;
+
+  Args:
+    port:	The port number (e.g. 8 for GPIO Port 0_8)
+
+  Return: 
+    0xffff, if the port doesn't support ADC
+    0xfffe, if for a timeout on caused by the ADC (e.g. caused by a missing call to adc_init())
+    otherwise: 12 bit ADC result at the specified port (0..4095) 
+
+*/
+uint16_t adc_read(uint8_t port);
+
 
 #endif
