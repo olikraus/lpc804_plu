@@ -70,8 +70,8 @@ int __attribute__ ((noinline)) main(void)
   Enable_Periph_Clock(CLK_SWM);
   
   /* 
-    disable pullups for those pins, which are used as ADC 
-    This is not required, because adc_read() will do this also, but
+    Disable pullups for those pins, which are used as ADC inputs.
+    This is not mandatory, because adc_read() will do this also, but
     results will be better if the pullups are disabled as early as possible.
   */
   *get_iocon_by_port(8) &= IOCON_MODE_MASK;
