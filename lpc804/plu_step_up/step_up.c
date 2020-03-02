@@ -53,7 +53,11 @@ int __attribute__ ((noinline)) main(void)
   
   plu();		/* plu() will enable GPIO0 clock */
   
+  Enable_Periph_Clock(CLK_IOCON);
   Enable_Periph_Clock(CLK_ACMP);
+  
+  *get_iocon_by_port(1) &= IOCON_MODE_MASK;	/* clear pullup on the comparator */
+  
 
   LPC_SYSCON->PDRUNCFG &= ~ACMP_PD;	/* power up analog comparator */
 
