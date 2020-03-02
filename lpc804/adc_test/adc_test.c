@@ -90,7 +90,7 @@ int __attribute__ ((noinline)) main(void)
 
   for(;;)
   {
-    GPIOSetBitValue(PORT0, 2, 1);
+    //GPIOSetBitValue(PORT0, 2, 1);
     delay_micro_seconds(20000);
     GPIOSetBitValue(PORT0, 2, 0);
     delay_micro_seconds(500000);

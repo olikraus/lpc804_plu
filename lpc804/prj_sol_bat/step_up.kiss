@@ -1,0 +1,29 @@
+#
+# step_up.kiss
+#
+# acomp: output of the analog comparator
+# mosfet: Should be connected the gate of the MOSFET which controlls the step up converter
+#
+
+.ilb acomp
+.ob mosfet
+
+.r idle
+
+# old version: from "idle" state both other states are reached directly 
+# 0 idle high 1
+# 0 high low 0
+# 0 low high 1
+# 1 high idle 0
+# 1 low idle 0
+# 1 idle idle 0
+
+# new version: from "idle" state always go to "low" state first
+
+
+0 idle low 0
+1 idle idle 0
+0 low high 1
+- high xhigh 1
+1 low idle 0
+- xhigh low 0
