@@ -35,5 +35,6 @@ input.
  - pluc does not support high level languages like VHDL or Verilog. However the asumption is, that PLA, BEX, KISS or BMS formats are powerful enough to describe problems for the LPC804 PLU.
  - pluc does not contain a graphical user interface or schematic editor
  - Algorithms inside pluc (dgc) and NXP "PLU configuration tool" (SIS) are both based on the research happend between 1980 and 1990.
+ - User Manual: [https://github.com/olikraus/lpc804_plu/wiki/pluc](https://github.com/olikraus/lpc804_plu/wiki/pluc)
  - A good summary of the technical background for pluc is here: https://www2.eecs.berkeley.edu/Pubs/TechRpts/1986/734.html
 

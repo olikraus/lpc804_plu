@@ -110,7 +110,7 @@ all: $(DISNAME) $(HEXNAME)
 	$(SIZE) $(ELFNAME)
 
 plu_setup.c: step_up.bex step_up.kiss
-	../../tools/pluc/pluc step_up.bex step_up.kiss -oc plu_setup.c -fn plu -lposc -clkdiv 5 -xrst
+	../../tools/pluc/pluc step_up.bex step_up.kiss -oc plu_setup.c -fn plu -lposc -clkdiv 2 -xrst
 
 
 .PHONY: upload

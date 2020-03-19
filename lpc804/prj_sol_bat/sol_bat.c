@@ -154,7 +154,7 @@ int __attribute__ ((noinline)) main(void)
 
   LPC_SWM->PINENABLE0 &= ~ACMP_I2;		/* enable ACMP input at PIN0_1 */
   
-  LPC_CMP->LAD = 1 | (2<<1);				/* enable ladder, 26*3.3V/31 = 0.213V */
+  LPC_CMP->LAD = 1 | (18<<1);				/* enable ladder, 26*3.3V/31 = 0.213V */
 
   /* compare the ladder output against voltage at PIO0_1 */
   LPC_CMP->CTRL =
@@ -170,7 +170,7 @@ int __attribute__ ((noinline)) main(void)
 
   for(;;)
   {
-    //GPIOSetBitValue(PORT0, 2, 1);
+    GPIOSetBitValue(PORT0, 2, 1);
     delay_micro_seconds(5000);
     GPIOSetBitValue(PORT0, 2, 0);
     delay_micro_seconds(500000);
