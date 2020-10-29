@@ -1,13 +1,14 @@
 /*
 
   ws2812b.c
-
-  PLU will be configured as SPI client. 
-  SPI clock should 800kHz: SPI clock div for the main clk can be 18 (833kHz) or 19 (789kHz)
   
-  PLU configuration:
-    sck: PIO0_22;
-    mosi: PIO0_21;
+  SPI controlled WS2812B
+  
+  SPI clock input: 15MHz
+  SPI Clock Div = 6 --> 2.5MHz SPI Clock --> 400ns
+  
+  Dataoutput is PIO0_8 (=MOSI)
+  
   
 */
 
@@ -22,12 +23,13 @@
 #include "util.h"
 
 /*=======================================================================*/
-/* externals */
-void plu(void);
-
-/*=======================================================================*/
 /* Configuration */
 #define SYS_TICK_PERIOD_IN_MS 100
+
+
+/*=======================================================================*/
+extern void plu(void);
+
 
 
 /*=======================================================================*/
@@ -50,17 +52,17 @@ void spi_init(void)
   Enable_Periph_Clock(CLK_SPI0);
   
   map_function_to_port(SPI0_SCK, 9);
-  map_function_to_port(SPI0_MOSI, 11);
+  map_function_to_port(SPI0_MOSI, 8);
   
   LPC_SYSCON->SPI0CLKSEL = FCLKSEL_MAIN_CLK;	
-  LPC_SPI0->DIV = 24;	/* 22 still seems to work */
+  LPC_SPI0->DIV = 6;
   LPC_SPI0->CFG = SPI_CFG_ENABLE | SPI_CFG_MASTER;
 }
 
 void spi_out(uint8_t *data, int cnt)
 {
   int i;
-  LPC_SPI0->TXCTL = 
+  LPC_SPI0->TXCTL =  
       SPI_CTL_RXIGNORE | 		/* do not read data from MISO */
       SPI_CTL_LEN(8) | 			/* send 8 bits */
       SPI_TXDATCTL_SSELN(3); 	/* do not use any slave select */
@@ -81,6 +83,34 @@ void spi_out(uint8_t *data, int cnt)
     LPC_SPI0->TXDAT = data[i];
   }
 
+}
+
+/*=======================================================================*/
+/*
+  convert 0 to 1000 and 1 to 1100
+  "out" array must be 4x bigger than "in" array.
+*/
+void convert_to_ws2812b(int cnt, uint8_t *in, uint8_t *out)
+{
+  int i, j;
+  uint8_t b;
+  for ( i = 0; i < cnt; i++ )
+  {
+    b = in[i];
+    j = 4;
+    do
+    {
+      *out = 0x44;
+      if ( b & 128 )
+	*out |= 0x20;
+      b <<= 1;
+      if ( b & 128 )
+	*out |= 0x02;
+      b <<= 1;
+      out++;
+      j--;
+    } while( j > 0 );
+  }
 }
 
 /*=======================================================================*/
@@ -221,22 +251,27 @@ void ccs_seek(ccs_t *ccs, int16_t pos)
 int __attribute__ ((noinline)) main(void)
 {
   uint8_t a[] = { 0, 0x3c, 0,  0, 0, 0x3c};
+  uint8_t aa[6*4];
+  uint8_t last_byte;
   int h = 0;
   ccs_t ccs_v;
   int is_v_up = 1;
-  int i;
-  /* call to the lpc lib setup procedure. This will set the IRC as clk src and main clk to 24 MHz */
+  /* call to the lpc lib setup procedure. This will set the IRC as clk src and main clk to 15 MHz */
   SystemInit(); 
 
   /* if the clock or PLL has been changed, also update the global variable SystemCoreClock */
   SystemCoreClockUpdate();
 
+  GPIOInit();
+  Enable_Periph_Clock(CLK_IOCON);
+  Enable_Periph_Clock(CLK_SWM);
+  
+  GPIOSetDir( PORT0, 8, OUTPUT);	// output for MOSI
+  
   /* set systick and start systick interrupt */
   SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
 
-
     
-  plu();		/* plu() will enable GPIO0 & SWM clock */
   spi_init();	
 
   delay_micro_seconds(50);
@@ -261,7 +296,10 @@ int __attribute__ ((noinline)) main(void)
       }
     }
 
-    spi_out(a, 6);
+    convert_to_ws2812b(6, a, aa);
+    spi_out(aa, 6*4);
+    //last_byte = 0;
+    //spi_out(&last_byte, 1);
     
     /* LPC804 might have up to two bytes in the queue, wait for their transmission */    
     delay_micro_seconds(24+24);
