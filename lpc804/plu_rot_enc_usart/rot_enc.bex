@@ -1,0 +1,27 @@
+# 
+# rot_enc.bex
+#
+# Only a limited number of pins can be used for INPUT:
+# PIO0_0 ... PIO0_5
+# PIO0_8 ... PIO0_13
+# PIO0_17 ... PIO0_22
+
+# Outputs:
+# PIO0_7 ... PIO0_21
+# PIO0_23 ... PIO0_30
+
+a <= PIO0_8;
+b <= PIO0_9;
+
+
+# PIO0_1 can not be used as output, instead use PIO0_23 and connect it to PIO0_1
+PIO0_23 <= dir;
+LVLSHFT_IN0 <= PIO0_23;
+PIO0_1 <= LVLSHFT_OUT0;
+
+PIO0_15 <= cnt;
+
+
+
+PLU_CLKIN <= CLKOUT;
+

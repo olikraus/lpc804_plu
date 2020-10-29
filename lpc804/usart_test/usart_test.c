@@ -8,6 +8,8 @@
   (e.g. use add CR function in "minicom")
   
   Received chars are echoed back enclosed in "<?>" once per second.
+  
+  Unix: "tail -f /dev/ttyUSB0" should also work.
 
 */
 

@@ -1610,6 +1610,7 @@ int pluc_route_external_connected_luts(void)
 	    else
 	    {
 	      pluc_err("Route: No route found from LUT%d to %s", i, pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0));
+	      exit(1);
 	    }
 	  } // LUT output is identical to LUT name
 	  else
