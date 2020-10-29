@@ -2248,6 +2248,11 @@ cl_entry_struct cl_list[] =
 void help(const char *pn)
 {
     printf("Usage: %s [options] <input files> \n", pn);
+    puts("input files:");
+    puts("  *.kiss (Espresso KISS format)");
+    puts("  *.bms (Burst Mode Specification)");
+    puts("  *.bex (Boolean Expression)");
+    puts("  *.pla (Espresso PLA Format)");
     puts("options:");
     cl_OutHelp(cl_list, stdout, " ", 20);
 }
