@@ -1,0 +1,25 @@
+# 
+# rot_enc.bex
+#
+# Only a limited number of pins can be used for INPUT:
+# PIO0_0 ... PIO0_5
+# PIO0_8 ... PIO0_13
+# PIO0_17 ... PIO0_22
+
+# Outputs:
+# PIO0_7 ... PIO0_21
+# PIO0_23 ... PIO0_30
+
+a1 <= PIO0_8;
+b1 <= PIO0_9;
+PIO0_23 <= dir1;
+PIO0_24 <= cnt1;
+
+a0 <= PIO0_3;
+b0 <= PIO0_2;
+PIO0_25 <= dir0;
+PIO0_26 <= cnt0;
+
+
+PLU_CLKIN <= CLKOUT;
+
