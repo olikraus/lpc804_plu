@@ -37,6 +37,7 @@
 
 char *fsm_state_out_signal = "zo";
 char *fsm_state_in_signal = "zi";
+int fsm_label_offset = 0;
 
 
 /*---------------------------------------------------------------------------*/
@@ -359,6 +360,7 @@ fsm_type fsm_Open()
   fsm = (fsm_type)malloc(sizeof(fsm_struct));
   if ( fsm != NULL )
   {
+    memset(fsm, 0, sizeof(fsm_struct)); // 30 oct 2020
     if ( fsm_Init(fsm) != 0 )
     {
       return fsm;
@@ -368,6 +370,7 @@ fsm_type fsm_Open()
   return NULL;
 }
 
+/* 30 oct 2020: Warning: fsm_Clear does not clear everything... */
 void fsm_Clear(fsm_type fsm)
 {
   int i;
@@ -383,7 +386,10 @@ void fsm_Clear(fsm_type fsm)
   while( b_set_WhileLoop(fsm->groups, &i) != 0 )
     fsmgrp_Close(fsm_GetGroup(fsm, i));
   b_set_Clear(fsm->groups);
+  
   fsm->reset_node_id = -1;
+  fsm->code_width = 0;
+    
 }
 
 void fsm_Close(fsm_type fsm)
@@ -1732,7 +1738,7 @@ const char *fsm_GetStateLabel(fsm_type fsm, int pos, const char *prefix)
     return NULL;
   if ( pos >= fsm_GetCodeWidth(fsm) )
     return NULL;
-  sprintf(fsm->labelbuf, "%s%d", prefix, pos);
+  sprintf(fsm->labelbuf, "%s%d", prefix, pos+fsm_label_offset);
   return fsm->labelbuf;
 }
 

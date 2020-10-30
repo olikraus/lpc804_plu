@@ -765,10 +765,19 @@ int pluc_read_file(const char *filename)
       return 0;
     dclClear(cl2_on);
     
+    
     if ( pluc_is_extension(filename, ".kiss") != 0 )
     {
-      fsm_Clear(fsm);
-
+      //fsm_Clear(fsm);
+      /* instead of clearing the FSM, the fsm is fully closed and reopend */
+      /* fsm_Clear does not seem to clear everything */
+      
+      fsm_Close(fsm);
+      fsm = fsm_Open();
+      if ( fsm == NULL )
+	return 0;
+      fsm_PushLogFn(fsm, pluc_fsm_log_fn, NULL, 0);
+      
       fsm_ReadKISS(fsm, filename);
       
       if ( cmdline_dbg )
@@ -791,7 +800,14 @@ int pluc_read_file(const char *filename)
     }
     else if ( pluc_is_extension(filename, ".bms") != 0 )
     {
-      fsm_Clear(fsm);
+      
+      // fsm_Clear(fsm); same as aboves
+
+      fsm_Close(fsm);
+      fsm = fsm_Open();
+      if ( fsm == NULL )
+	return 0;
+      fsm_PushLogFn(fsm, pluc_fsm_log_fn, NULL, 0);
 
       //fsm_Import(fsm, filename);
 
@@ -846,6 +862,7 @@ int pluc_read_file(const char *filename)
     }
 
     
+    fsm_label_offset+=fsm->code_width;		// ensure that the labels for the next machine are unique
     return 1;
 }
 
@@ -1610,7 +1627,8 @@ int pluc_route_external_connected_luts(void)
 	    else
 	    {
 	      pluc_err("Route: No route found from LUT%d to %s", i, pinfoGetOutLabel(&(pluc_lut_list[i].pi), 0));
-	      exit(1);
+	      // exit(1);
+	      return 0;
 	    }
 	  } // LUT output is identical to LUT name
 	  else

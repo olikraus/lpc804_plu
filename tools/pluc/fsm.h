@@ -38,6 +38,7 @@
 
 extern char *fsm_state_out_signal;
 extern char *fsm_state_in_signal;
+extern int fsm_label_offset;
 
 
 struct _fsmgrp_struct
