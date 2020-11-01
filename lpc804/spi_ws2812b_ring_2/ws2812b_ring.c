@@ -58,36 +58,45 @@ typedef struct _ws2812_spi ws2812_spi_t;
 
 ws2812_spi_t ws2812_spi;
 
+/* this SPI handler will do an online conversion of the bit values to the WS2812B format */
+/* 4 bits of date are converted into two bytes (16 bit) of data */ 
 void __attribute__ ((interrupt)) SPI0_Handler(void)
 {
-  uint32_t d = 0x44;
-  if ( ws2812_spi.cnt > 0 )
+  if ( ws2812_spi.cnt > 0 || ws2812_spi.bitcnt > 0 )
   {
-      if ( ws2812_spi.bitcnt >= 4 )
-      {
-	//ws2812_spi.b = ws2812_spi.spi_data++;
-	//ws2812_spi.cnt--;
-	ws2812_spi.bitcnt = 0;
-      }
-      ws2812_spi.bitcnt++;
-      if ( ws2812_spi.b & 128 )
-	d |= 0x20;
-      ws2812_spi.b <<= 1;
-      if ( ws2812_spi.b & 128 )
-	d |= 0x02;
-      ws2812_spi.b <<= 1;
-      ws2812_spi.bitcnt++;
-    LPC_SPI0->TXDAT = *ws2812_spi.spi_data++;
-    ws2812_spi.cnt--;
+    uint32_t d = 0x4444;
+    register uint32_t b;
+    
+    if ( ws2812_spi.bitcnt == 0 )
+    {
+      ws2812_spi.b = *ws2812_spi.spi_data++;
+      ws2812_spi.cnt--;
+      ws2812_spi.bitcnt = 2;
+    }
+    
+    b = ws2812_spi.b;
+    if ( b & 128 )
+      d |= 0x2000;
+    if ( b & 64 )
+      d |= 0x0200;
+    if ( b & 32 )
+      d |= 0x0020;
+    if ( b & 16 )
+      d |= 0x0002;
+    b <<= 4;
+    ws2812_spi.b = b;
+    
+    LPC_SPI0->TXDAT = d;
+    ws2812_spi.bitcnt--;
   }
   else
   {
     /* ensure, that the SCK goes to low after the byte transfer: */
     /* Set the EOT flag at the end of the transfer */
-    LPC_SPI0->TXCTL |= SPI_CTL_EOT;
+   LPC_SPI0->TXCTL |= SPI_CTL_EOT;
     
     /* disable interrupt, needs to be re-enabled whenever new data should be transmitted */
-    LPC_SPI0->INTENCLR = SPI_STAT_TXRDY; 
+   LPC_SPI0->INTENCLR = SPI_STAT_TXRDY; 
   }  
 }
 
@@ -119,12 +128,12 @@ void spi_out(uint8_t *data, int cnt)
   
   LPC_SPI0->TXCTL =  
       SPI_CTL_RXIGNORE | 		/* do not read data from MISO */
-      SPI_CTL_LEN(8) | 			/* send 8 bits */
+      SPI_CTL_LEN(16) | 			/* send 16 bits */
       SPI_TXDATCTL_SSELN(3); 	/* do not use any slave select */
   
   ws2812_spi.spi_data = data;
   ws2812_spi.cnt = cnt;
-  ws2812_spi.bitcnt = 4;
+  ws2812_spi.bitcnt = 0;
   /* load first byte, so that the TXRDY interrupt will be generated */
   /* this is just a zero byte and is ignored by the WS2812B */
   LPC_SPI0->TXDAT = 0;	
@@ -350,7 +359,8 @@ int __attribute__ ((noinline)) main(void)
     }
 
     convert_to_ws2812b(LED_CNT*3, a, aa);
-    spi_out(aa, LED_CNT*3*4);
+    //spi_out(aa, LED_CNT*3*4);
+    spi_out(a, LED_CNT*3);
     //last_byte = 0;
     //spi_out(&last_byte, 1);
     
