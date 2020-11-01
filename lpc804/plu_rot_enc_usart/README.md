@@ -6,6 +6,7 @@
  generates two output signals (direction and count pulse)
  * Output signals are mapped to unused GPIO pins
  * Software observes the rising/falling edge of the count pulse via pin interrupt
+ * Output via USART interface
  
 
 ![quadrature_decoder_state_machine_trim.png](quadrature_decoder_state_machine_trim.png)
