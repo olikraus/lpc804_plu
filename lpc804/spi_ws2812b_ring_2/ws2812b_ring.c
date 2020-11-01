@@ -2,14 +2,16 @@
 
   ws2812b_ring.c
   
-  SPI controlled WS2812B
+  SPI controlled WS2812B with data conversion inside SPI ISR
   
   SPI clock input: 15MHz
   SPI Clock Div = 6 --> 2.5MHz SPI Clock --> 400ns
   
   Dataoutput is PIO0_15 (=MOSI)
-  
-  
+
+  Log output via USART:  Unix: "tail -f /dev/ttyUSB0" should work.
+
+
 */
 
 
@@ -47,31 +49,52 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
 
 /*=======================================================================*/
 
+usart_t usart;
+uint8_t usart_rx_buf[8];
+
+/*=======================================================================*/
+/* 
+  SPI procedures for WS2812B LEDs 
+  1) Call "void ws2812_spi_init(void)" 
+  2) Call "ws2812_spi_out(int gpio, uint8_t *data, int cnt)" to output RGB Data
+  currently the procedure uses around 50-60 system ticks
+*/
+
 struct _ws2812_spi
 {
   volatile uint8_t *spi_data;
-  volatile uint32_t cnt;		// remaining bytes
+  volatile uint32_t byte_cnt;		// remaining bytes
   volatile uint32_t b;		// the current byte
-  volatile uint32_t bitcnt;		
+  volatile uint32_t bit_cnt;
+  volatile uint32_t post_data_wait;
+  volatile uint32_t isr_ticks;
+  volatile uint32_t max_isr_ticks;
+  volatile int in_progress;
 };
 typedef struct _ws2812_spi ws2812_spi_t;
 
 ws2812_spi_t ws2812_spi;
 
-/* this SPI handler will do an online conversion of the bit values to the WS2812B format */
-/* 4 bits of date are converted into two bytes (16 bit) of data */ 
+/*
+  This SPI handler will do an online conversion of the bit values to the WS2812B format 
+  4 bits of date are converted into two bytes (16 bit) of data
+  This procedure is time critical: 6 Clock-Cycle per SPI bit 6*16 = 96 Clock Cycle
+  ==> Upper Limit for this procedure are 96 clock cycles
+*/
 void __attribute__ ((interrupt)) SPI0_Handler(void)
 {
-  if ( ws2812_spi.cnt > 0 || ws2812_spi.bitcnt > 0 )
+  //uint32_t start = SysTick->VAL;
+  //uint32_t end;
+  if ( ws2812_spi.byte_cnt > 0 || ws2812_spi.bit_cnt > 0 )
   {
     uint32_t d = 0x4444;
     register uint32_t b;
     
-    if ( ws2812_spi.bitcnt == 0 )
+    if ( ws2812_spi.bit_cnt == 0 )
     {
       ws2812_spi.b = *ws2812_spi.spi_data++;
-      ws2812_spi.cnt--;
-      ws2812_spi.bitcnt = 2;
+      ws2812_spi.byte_cnt--;
+      ws2812_spi.bit_cnt = 2;
     }
     
     b = ws2812_spi.b;
@@ -87,27 +110,43 @@ void __attribute__ ((interrupt)) SPI0_Handler(void)
     ws2812_spi.b = b;
     
     LPC_SPI0->TXDAT = d;
-    ws2812_spi.bitcnt--;
+    ws2812_spi.bit_cnt--;
   }
   else
   {
-    /* ensure, that the SCK goes to low after the byte transfer: */
-    /* Set the EOT flag at the end of the transfer */
-   LPC_SPI0->TXCTL |= SPI_CTL_EOT;
-    
-    /* disable interrupt, needs to be re-enabled whenever new data should be transmitted */
-   LPC_SPI0->INTENCLR = SPI_STAT_TXRDY; 
-  }  
+    if ( ws2812_spi.post_data_wait > 0 )
+    {
+      /* wait for 50us, this are 125 SPI clocks (each is 0.4us) --> send 128 bits, 8x 16 Bit words */
+      LPC_SPI0->TXDAT = 0;
+      ws2812_spi.post_data_wait--;
+    }
+    else
+    {
+      
+      /* ensure, that the SCK goes to low after the byte transfer: */
+      /* Set the EOT flag at the end of the transfer */
+      LPC_SPI0->TXCTL |= SPI_CTL_EOT;
+      
+      /* disable interrupt, needs to be re-enabled whenever new data should be transmitted */
+      LPC_SPI0->INTENCLR = SPI_STAT_TXRDY; 
+      ws2812_spi.in_progress = 0;
+    }
+  } 
+  /*
+  end = SysTick->VAL;
+  if ( start < end )
+    start += SysTick->LOAD;
+  start -= end;			// calculate the duration in ticks
+  if ( ws2812_spi.max_isr_ticks < start )
+    ws2812_spi.max_isr_ticks = start;	// calculate maximum
+  ws2812_spi.isr_ticks = start;
+  */
 }
 
-void spi_init(void)
+void ws2812_spi_init(void)
 {
   Enable_Periph_Clock(CLK_SPI0);
-
   
-  //map_function_to_port(SPI0_SCK, 9);
-  GPIOSetDir( PORT0, 15, OUTPUT);	// output for MOSI
-  map_function_to_port(SPI0_MOSI, 15);
   
   LPC_SYSCON->SPI0CLKSEL = FCLKSEL_MAIN_CLK;
   
@@ -119,12 +158,17 @@ void spi_init(void)
   
 }
 
-void spi_out(uint8_t *data, int cnt)
+void ws2812_spi_out(int gpio, uint8_t *data, int cnt)
 {
   
   /* wait until data is transmitted */
-  while( ws2812_spi.cnt != 0 )
+  while( ws2812_spi.in_progress != 0 )
     ;
+
+  GPIOSetDir( PORT0, gpio, OUTPUT);	// output for MOSI
+  //map_function_to_port(SPI0_SCK, 9);
+  map_function_to_port(SPI0_MOSI, gpio);
+
   
   LPC_SPI0->TXCTL =  
       SPI_CTL_RXIGNORE | 		/* do not read data from MISO */
@@ -132,41 +176,15 @@ void spi_out(uint8_t *data, int cnt)
       SPI_TXDATCTL_SSELN(3); 	/* do not use any slave select */
   
   ws2812_spi.spi_data = data;
-  ws2812_spi.cnt = cnt;
-  ws2812_spi.bitcnt = 0;
+  ws2812_spi.byte_cnt = cnt;
+  ws2812_spi.bit_cnt = 0;
+  ws2812_spi.post_data_wait = 9;		/* 8 would be sufficient, use 9 to be on the safe side */
+  ws2812_spi.in_progress  = 1;
   /* load first byte, so that the TXRDY interrupt will be generated */
   /* this is just a zero byte and is ignored by the WS2812B */
   LPC_SPI0->TXDAT = 0;	
   LPC_SPI0->INTENSET |= SPI_STAT_TXRDY;	/* enable TX ready interrupt */
 
-}
-
-/*=======================================================================*/
-/*
-  convert 0 to 1000 and 1 to 1100
-  "out" array must be 4x bigger than "in" array.
-*/
-void convert_to_ws2812b(int cnt, uint8_t *in, uint8_t *out)
-{
-  int i, j;
-  uint8_t b;
-  for ( i = 0; i < cnt; i++ )
-  {
-    b = in[i];
-    j = 4;
-    do
-    {
-      *out = 0x44;
-      if ( b & 128 )
-	*out |= 0x20;
-      b <<= 1;
-      if ( b & 128 )
-	*out |= 0x02;
-      b <<= 1;
-      out++;
-      j--;
-    } while( j > 0 );
-  }
 }
 
 /*=======================================================================*/
@@ -308,7 +326,6 @@ void ccs_seek(ccs_t *ccs, int16_t pos)
 int __attribute__ ((noinline)) main(void)
 {
   static uint8_t a[LED_CNT*3];
-  static uint8_t aa[LED_CNT*3*4];
   uint16_t min_brightness = 5;
   uint16_t max_brightness = 30;
   int h = 0;
@@ -329,8 +346,9 @@ int __attribute__ ((noinline)) main(void)
   /* set systick and start systick interrupt */
   SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
 
+  usart0_init(&usart, 5, /* tx */ 4, /* rx */ 0, usart_rx_buf, 32);  
     
-  spi_init();	
+  ws2812_spi_init();	
 
   delay_micro_seconds(50);
   ccs_init(&ccs_v, min_brightness, max_brightness, 37);
@@ -358,19 +376,20 @@ int __attribute__ ((noinline)) main(void)
       }
     }
 
-    convert_to_ws2812b(LED_CNT*3, a, aa);
-    //spi_out(aa, LED_CNT*3*4);
-    spi_out(a, LED_CNT*3);
-    //last_byte = 0;
-    //spi_out(&last_byte, 1);
+    ws2812_spi_out(15, a, LED_CNT*3);
     
-    /* LPC804 might have up to two bytes in the queue, wait for their transmission */    
-    delay_micro_seconds(24+24);
-    /* write the new values into the LEDs */
-    delay_micro_seconds(50);
     
     /* end user delay */
     delay_micro_seconds(20000L);
+    
+    if ( (h & 0x3f) == 0 )
+    {
+      usart_write_string(&usart, "spi isr ticks=");    
+      usart_write_string(&usart, u16toa(ws2812_spi.isr_ticks));    
+      usart_write_string(&usart, " spi max isr ticks=");    
+      usart_write_string(&usart, u16toa(ws2812_spi.max_isr_ticks));    
+      usart_write_string(&usart, "\n");    
+    }
   }
   
 }
