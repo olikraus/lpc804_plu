@@ -37,8 +37,10 @@
 /* value of the direction bit for clock wise rotation */
 #define ROT_ENC_1_CW_DIR 0
 
-#define LED_CNT_RING_0 12
-
+/* number of LEDs in Ring 0 */
+#define LED_R0_CNT 12
+/* special LED in Ring 0 */
+#define LED_R0_TOP 12
 
 /*=======================================================================*/
 /* extern */
@@ -240,26 +242,77 @@ void ws2812_spi_out(int gpio, uint8_t *data, int cnt)
 
 /*=======================================================================*/
 
-uint8_t led_ring_0[LED_CNT_RING_0*3];
+/* https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both */
+
+
+void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    uint8_t region, remainder, p, q, t;
+
+    v = ((uint16_t)v*(uint16_t)v/256);		// add a nonlinear curve to v
+
+    if (s == 0)
+    {
+        *r = v;
+        *g = v;
+        *b = v;
+        return ;
+    }
+
+    region = h / 43;
+    remainder = (h - (region * 43)) * 6; 
+    
+
+    p = (v * (uint16_t)(255 - s)) >> 8;
+    q = (v * (uint16_t)(255 - ((s * remainder) >> 8))) >> 8;
+    t = (v * (uint16_t)(255 - ((s * (uint16_t)(255 - remainder)) >> 8))) >> 8;
+
+    switch (region)
+    {
+        case 0:
+            *r = v; *g = t; *b = p;
+            break;
+        case 1:
+            *r = q; *g = v; *b = p;
+            break;
+        case 2:
+            *r = p; *g = v; *b = t;
+            break;
+        case 3:
+            *r = p; *g = q; *b = v;
+            break;
+        case 4:
+            *r = t; *g = p; *b = v;
+            break;
+        default:
+            *r = v; *g = p; *b = q;
+            break;
+    }
+}
+
+
+/*=======================================================================*/
+
+uint8_t led_ring_0[LED_R0_CNT*3];
 
 void led_clear(int slot)
 {
   int i;
-  for( i = 0; i < LED_CNT_RING_0*3; i++ )
+  for( i = 0; i < LED_R0_CNT*3; i++ )
     led_ring_0[i] = 0;
 }
 
-void led_set_rgb(int slot, int pos, int r, int g, int b)
+void led_set_rgb(int slot, unsigned pos, uint8_t r, uint8_t g, uint8_t b)
 {
-  pos %= LED_CNT_RING_0;
+  pos %= LED_R0_CNT;
   led_ring_0[pos*3] = r;
   led_ring_0[pos*3+1] = g;
   led_ring_0[pos*3+2] = b;
 }
 
-void led_add_rgb(int slot, int pos, int r, int g, int b)
+void led_add_rgb(int slot, unsigned pos, uint8_t r, uint8_t g, uint8_t b)
 {
-  pos %= LED_CNT_RING_0;
+  pos %= LED_R0_CNT;
   led_ring_0[pos*3] += r;
   led_ring_0[pos*3+1] += g;
   led_ring_0[pos*3+2] += b;
@@ -267,9 +320,51 @@ void led_add_rgb(int slot, int pos, int r, int g, int b)
 
 void led_out(int slot)
 {
-  ws2812_spi_out(15, led_ring_0, LED_CNT_RING_0*3);
+  ws2812_spi_out(15, led_ring_0, LED_R0_CNT*3);
 }
 
+
+/*
+  draw h selector into given slot
+  pos: wrap around
+*/
+void led_draw_h_selector(int slot, unsigned pos, unsigned max, uint8_t s, uint8_t v)
+{
+  uint8_t h = pos * 256 / max;
+  uint8_t r, g, b;
+  unsigned i, j;
+  for( i = 0; i < LED_R0_CNT; i++ )
+  {
+    if ( i == 0 )
+      hsv_to_rgb(h + (i * 256)/LED_R0_CNT, s, v, &r, &g, &b);
+    else
+      hsv_to_rgb(h + (i * 256)/LED_R0_CNT, s, v/2, &r, &g, &b);
+    j = LED_R0_CNT - 1 + LED_R0_TOP - i ;
+    j %= LED_R0_CNT;
+    led_set_rgb(slot, j, r, g, b);
+  }
+  
+  led_set_rgb(0, LED_R0_TOP-1, 0, 0, 0);
+  led_set_rgb(0, LED_R0_TOP+1, 0, 0, 0);
+}
+
+
+void led_draw_v_selector(int slot, unsigned pos, unsigned max, uint8_t h, uint8_t s)
+{
+  uint8_t v = pos * 256 / max;
+  uint8_t r, g, b;
+  unsigned i, j;
+  for( i = 0; i < LED_R0_CNT; i++ )
+  {
+    hsv_to_rgb(h, s, v + (i * 256)/LED_R0_CNT, &r, &g, &b);
+    j = LED_R0_CNT - 1 + LED_R0_TOP - i ;
+    j %= LED_R0_CNT;
+    led_set_rgb(slot, j, r, g, b);
+  }
+  
+  led_set_rgb(0, LED_R0_TOP-1, 0, 0, 0);
+  led_set_rgb(0, LED_R0_TOP+1, 0, 0, 0);
+}
 
 /*=======================================================================*/
 static const unsigned char u8toa_tab[3]  = { 100, 10, 1 } ;
@@ -364,7 +459,13 @@ int __attribute__ ((noinline)) main(void)
       led_clear(0);
       led_set_rgb(0, rot_enc_0_value, 40,0,0);
       led_add_rgb(0, rot_enc_1_value, 0,40,0);
+      
+      rot_enc_1_value &= 0x03f;
+      led_draw_h_selector(0, rot_enc_1_value, 0x040, 255, 50);
+      led_draw_v_selector(0, rot_enc_1_value, 0x040, 0, 0);
       led_out(0);
+      
+      
       delay_micro_seconds(1000000/20);
     }
     
