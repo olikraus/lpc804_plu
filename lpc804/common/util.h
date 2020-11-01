@@ -192,6 +192,7 @@ int rb_get(rb_t *rb);
 
 void usart0_init(usart_t *usart, uint32_t brgval, uint8_t tx, uint8_t rx, uint8_t *rx_buf, uint16_t rx_len);
 void usart_write_byte(usart_t *usart, uint8_t data);
+void usart_write_bits(usart_t *usart, uint32_t bits, int cnt);
 void usart_write_string(usart_t *usart, const char *s);
 int usart_read_byte(usart_t *usart);		// returns -1 if there is no byte available
 

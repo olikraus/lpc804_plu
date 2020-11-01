@@ -436,6 +436,24 @@ void usart_write_byte(usart_t *usart, uint8_t data)
   usart->usart->TXDAT = data;
 }
 
+void usart_write_bits(usart_t *usart, uint32_t bits, int cnt)
+{
+  uint32_t mask = 1<<(cnt-1);
+  while( cnt > 0 )
+  {
+    if ( bits & mask )
+    {
+      usart_write_byte(usart, '1');
+    }
+    else
+    {
+      usart_write_byte(usart, '0');
+    }
+    mask >>= 1;
+    cnt--;
+  }
+}
+
 void usart_write_string(usart_t *usart, const char *s)
 {
   if ( s == NULL )

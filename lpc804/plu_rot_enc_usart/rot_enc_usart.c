@@ -132,7 +132,7 @@ int __attribute__ ((noinline)) main(void)
   Enable_Periph_Clock(CLK_GPIO_INT);
   Do_Periph_Reset(CLK_GPIO_INT);
   
-  LPC_SYSCON->PINTSEL0 = 15;
+  LPC_SYSCON->PINTSEL0 = ROT_ENC_CNT_PIN;
   LPC_PIN_INT->ISEL = 0;		// edge sensitive
   LPC_PIN_INT->SIENR = 1;		// enable rising edge interrupt 
   LPC_PIN_INT->SIENF = 1;		// enable falling edge interrupt 

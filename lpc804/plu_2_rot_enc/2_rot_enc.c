@@ -25,8 +25,16 @@
 /* Configuration */
 #define SYS_TICK_PERIOD_IN_MS 100
 
-#define ROT_ENC_DIR_PIN 23
-#define ROT_ENC_CNT_PIN 15
+
+#define ROT_ENC_0_DIR_PIN 25
+#define ROT_ENC_0_CNT_PIN 26
+/* value of the direction bit for clock wise rotation */
+#define ROT_ENC_0_CW_DIR 0
+
+#define ROT_ENC_1_DIR_PIN 23
+#define ROT_ENC_1_CNT_PIN 24
+/* value of the direction bit for clock wise rotation */
+#define ROT_ENC_1_CW_DIR 0
 
 
 /*=======================================================================*/
@@ -40,7 +48,8 @@ extern void plu(void);
 
 
 volatile uint32_t sys_tick_irq_cnt=0;
-volatile uint8_t rot_enc_value = 0;
+volatile uint8_t rot_enc_0_value = 0;
+volatile uint8_t rot_enc_1_value = 0;
 
 void __attribute__ ((interrupt)) SysTick_Handler(void)
 {  
@@ -51,21 +60,40 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
 void __attribute__ ((interrupt)) PININT0_Handler(void)
 {  
   LPC_PIN_INT->IST = 1;		// clear interrupt
-  if ( LPC_GPIO_PORT->B0[ROT_ENC_DIR_PIN] )
+  if ( LPC_GPIO_PORT->B0[ROT_ENC_0_DIR_PIN] == ROT_ENC_0_CW_DIR )
   {
-    if ( rot_enc_value < 255 )
+    if ( rot_enc_0_value < 255 )
     {
-      rot_enc_value++;
+      rot_enc_0_value++;
     }
   }
   else
   {
-    if ( rot_enc_value > 0 )
+    if ( rot_enc_0_value > 0 )
     {
-      rot_enc_value--;
+      rot_enc_0_value--;
+    }
+  }    
+}
+
+
+void __attribute__ ((interrupt)) PININT1_Handler(void)
+{  
+  LPC_PIN_INT->IST = 2;		// clear interrupt
+  if ( LPC_GPIO_PORT->B0[ROT_ENC_1_DIR_PIN] == ROT_ENC_1_CW_DIR )
+  {
+    if ( rot_enc_1_value < 255 )
+    {
+      rot_enc_1_value++;
     }
   }
-    
+  else
+  {
+    if ( rot_enc_1_value > 0 )
+    {
+      rot_enc_1_value--;
+    }
+  }    
 }
 
 
@@ -101,6 +129,8 @@ const char *u8toa(uint8_t v, uint8_t d)
 }
 
 
+      
+
 
 /*=======================================================================*/
 /*
@@ -109,7 +139,7 @@ const char *u8toa(uint8_t v, uint8_t d)
 */
 int __attribute__ ((noinline)) main(void)
 {
-  int dir, tick;
+  int dir0, dir1, tick;
 
   usart_t usart;
   uint8_t usart_rx_buf[32];
@@ -132,12 +162,17 @@ int __attribute__ ((noinline)) main(void)
   Enable_Periph_Clock(CLK_GPIO_INT);
   Do_Periph_Reset(CLK_GPIO_INT);
   
-  LPC_SYSCON->PINTSEL0 = 15;
+  LPC_SYSCON->PINTSEL0 = ROT_ENC_0_CNT_PIN;
+  LPC_SYSCON->PINTSEL1 = ROT_ENC_1_CNT_PIN;
   LPC_PIN_INT->ISEL = 0;		// edge sensitive
-  LPC_PIN_INT->SIENR = 1;		// enable rising edge interrupt 
-  LPC_PIN_INT->SIENF = 1;		// enable falling edge interrupt 
-  NVIC_SetPriority(PININT0_IRQn, (1<<__NVIC_PRIO_BITS) - 1);  /* set Priority for Systick Interrupt */
+  LPC_PIN_INT->SIENR = 3;		// enable rising edge interrupt 
+  //LPC_PIN_INT->SIENF = 1;		// enable falling edge interrupt 
+  
+  NVIC_SetPriority(PININT0_IRQn, (1<<__NVIC_PRIO_BITS) - 1);  /* set Priority */
   NVIC_EnableIRQ(PININT0_IRQn);
+  
+  NVIC_SetPriority(PININT1_IRQn, (1<<__NVIC_PRIO_BITS) - 1);  /* set Priority */
+  NVIC_EnableIRQ(PININT1_IRQn);
   
 
   usart0_init(&usart, 5, /* tx */ 4, /* rx */ 0, usart_rx_buf, 32);  
@@ -152,15 +187,18 @@ int __attribute__ ((noinline)) main(void)
     //GPIOSetBitValue(PORT0, 15, 0);
     delay_micro_seconds(1000000/2);
 
-    dir = LPC_GPIO_PORT->B0[ROT_ENC_DIR_PIN];
-    tick = GPIOGetPinValue( PORT0, ROT_ENC_CNT_PIN) == 0 ? 0 : 1;
-    usart_write_string(&usart, "dir=");    
-    usart_write_byte(&usart, '0'+dir);
-    usart_write_string(&usart, " tick=");    
-    usart_write_byte(&usart, '0'+tick);
+    dir0 = LPC_GPIO_PORT->B0[ROT_ENC_0_DIR_PIN];
+    dir1 = LPC_GPIO_PORT->B0[ROT_ENC_1_DIR_PIN];
+    usart_write_string(&usart, "dir0=");    
+    usart_write_byte(&usart, '0'+dir0);
+    usart_write_string(&usart, " dir1=");    
+    usart_write_byte(&usart, '0'+dir1);
     
-    usart_write_string(&usart, " rot_enc_value=");    
-    usart_write_string(&usart, u8toa(rot_enc_value,3));    
+    usart_write_string(&usart, " rot_enc_0_value=");    
+    usart_write_string(&usart, u8toa(rot_enc_0_value,3));    
+
+    usart_write_string(&usart, " rot_enc_1_value=");    
+    usart_write_string(&usart, u8toa(rot_enc_1_value,3));    
 
     usart_write_string(&usart, " rise=");    
     usart_write_string(&usart, u8toa(LPC_PIN_INT->RISE,3));    
@@ -168,9 +206,8 @@ int __attribute__ ((noinline)) main(void)
     usart_write_string(&usart, " ist=");    
     usart_write_string(&usart, u8toa(LPC_PIN_INT->IST,3));    
     
-    usart_write_string(&usart, " outputs=");    
-    usart_write_byte(&usart, '0'+LPC_PLU0->OUTPUTS);
-      
+    usart_write_string(&usart, " ");    
+    usart_write_bits(&usart, LPC_PLU0->OUTPUTS, 8);
     
     
     usart_write_string(&usart, "\n"); 
