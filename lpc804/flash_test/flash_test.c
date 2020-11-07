@@ -41,7 +41,38 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
   GPIOSetBitValue(PORT0, 9, (sys_tick_irq_cnt & 1) == 0?0:1);
 }
 
+/* return system ticks since last startup */
+uint64_t get_systick(void)
+{
+  uint32_t ticks_per_systick_irq;  
+  uint32_t systick_value_first, systick_value;
+  uint64_t systick_since_reboot;
 
+  /* disable interrupts to ensure consistency */
+  __disable_irq();
+  /* get the current systick value, we will later check, wether there was a reload */
+  systick_value_first = SysTick->VAL;
+  
+  ticks_per_systick_irq = SysTick->LOAD;
+  ticks_per_systick_irq++;		// LOAD value is one less, so fix this
+  
+  systick_since_reboot = sys_tick_irq_cnt;
+  systick_value = SysTick->VAL;
+  
+  /* check or rollover and use the higher (earlier) value */
+  if ( systick_value < systick_value_first )
+    systick_value = systick_value_first;
+  
+  /* calculate the elapsed time since last irq */
+  systick_value = SysTick->LOAD - systick_value;
+  __enable_irq();
+  
+
+  systick_since_reboot *= ticks_per_systick_irq;
+  systick_since_reboot += systick_value;
+
+  return systick_since_reboot;
+}
 
 /*=======================================================================*/
 /*
@@ -50,6 +81,7 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
 */
 int __attribute__ ((noinline)) main(void)
 {
+  uint64_t ticks;
   uint16_t data = 1234;
   uint16_t status;
 
@@ -97,7 +129,7 @@ int __attribute__ ((noinline)) main(void)
     GPIOSetBitValue(PORT0, 15, 0);
     delay_micro_seconds(1000000);
     usart_write_string(&usart, "Flash Test Data=");    
-    usart_write_u16(&usart, data);
+    usart_write_u32(&usart, data);
     usart_write_string(&usart, "\n");
     
     usart_write_string(&usart, "Erase Page: ");    
@@ -120,14 +152,22 @@ int __attribute__ ((noinline)) main(void)
     
     *(uint16_t *)flash_buf = data;
     usart_write_string(&usart, "Erase and Write Page: ");    
+    ticks = get_systick();
     status = flash_page(0x07f00, flash_buf);
+    ticks = get_systick()-ticks;
     usart_write_u16(&usart, status);
+    usart_write_string(&usart, "\n");
+    
+    usart_write_string(&usart, "Time in systicks: ");    
+    usart_write_u32(&usart, ticks);
     usart_write_string(&usart, "\n");
 
     if ( *(uint16_t *)0x7f00 == data )
       usart_write_string(&usart, "Compare Ok\n");
     else
       usart_write_string(&usart, "Compare Failed\n");
+
+
     
   }
 }

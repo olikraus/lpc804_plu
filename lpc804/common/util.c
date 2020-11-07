@@ -467,6 +467,11 @@ void usart_write_u16(usart_t *usart, uint16_t v)
   usart_write_string(usart, u16toa(v));
 }
 
+void usart_write_u32(usart_t *usart, uint32_t v)
+{
+  usart_write_string(usart, u32toa(v));
+}
+
 int usart_read_byte(usart_t *usart)
 {
   return rb_get(&(usart0_struct_ptr->rb));
@@ -501,6 +506,39 @@ const char *u16toa(uint16_t v)
 {
   static char buf[6];
   const char *s = u16toap(buf, v);
+  while( *s == '0' )
+    s++;
+  if ( *s == '\0' )
+    s--;
+  return s;
+}
+
+
+static const char *u32toap(char * dest, uint32_t v)
+{
+  uint8_t pos;
+  uint8_t d;
+  uint32_t c;
+  c = 1000000000UL;
+  for( pos = 0; pos < 10; pos++ )
+  {
+      d = '0';
+      while( v >= c )
+      {
+	v -= c;
+	d++;
+      }
+      dest[pos] = d;
+      c /= 10;
+  }  
+  dest[11] = '\0';
+  return dest;
+}
+
+const char *u32toa(uint32_t v)
+{
+  static char buf[12];
+  const char *s = u32toap(buf, v);
   while( *s == '0' )
     s++;
   if ( *s == '\0' )
