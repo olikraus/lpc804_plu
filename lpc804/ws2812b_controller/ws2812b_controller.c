@@ -1,6 +1,6 @@
 /*
 
-  rot_enc_usart.c
+  ws2812b_controller.c
 
   Configuration is 115200 8-N-1. Only "\n" is sent. Receiving terminal should add \r
   (e.g. use add CR function in "minicom")
