@@ -537,6 +537,8 @@ const char *lpc_error_string[] =
 int uart_fd = 0;
 int uart_show_isp_cmd = 0;
 int is_verify = 0;
+int do_not_clear_top_sector = 0;
+
 struct termios uart_io;
 /* in_buf should be large enough to read a complete sector with some additional overhead */
 #define UART_IN_BUF_LEN (1024*48)
@@ -1226,11 +1228,20 @@ int lpc_erase_all(void)
 
   sector_cnt = lpc_part->flash_size / lpc_part->sector_size;
   sector_cnt--;
+  if ( do_not_clear_top_sector != 0 )
+  {
+    sector_cnt--;
+    msg("flash erase except topmost sector");
+  }
+  else
+  {
+    msg("flash erase");
+  }
+    
   sprintf(s, "E 0 %lu\r\n", sector_cnt);
   
   lpc_prepare_sectors(0, sector_cnt);
 
-  msg("flash erase");
   
   uart_reset_in_buf();
   uart_send_str(s);
@@ -1674,6 +1685,7 @@ void help(void)
   printf("Version " VERSION);
   printf("-h        Display this help\n");
   printf("-f <file> Load data from intel hex <file>\n");
+  printf("-t        Do not erase topmost sector\n");
   printf("-v        Verify flash upload\n");
   printf("-x        Execute ARM reset handler after upload\n");
   printf("          Note: Reset handler must set the stack pointer and restore SYSMEMREMAP\n");
@@ -1722,6 +1734,10 @@ int main(int argc, char **argv)
     else if ( is_arg(&argv, 'i') != 0 )
     {
       uart_show_isp_cmd = 1;
+    }
+    else if ( is_arg(&argv, 't') != 0 )
+    {
+      do_not_clear_top_sector = 1;
     }
     else if ( get_num_arg(&argv, 's', &speed) != 0 )
     {

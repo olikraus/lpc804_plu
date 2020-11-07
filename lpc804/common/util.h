@@ -194,6 +194,7 @@ void usart0_init(usart_t *usart, uint32_t brgval, uint8_t tx, uint8_t rx, uint8_
 void usart_write_byte(usart_t *usart, uint8_t data);
 void usart_write_bits(usart_t *usart, uint32_t bits, int cnt);
 void usart_write_string(usart_t *usart, const char *s);
+void usart_write_u16(usart_t *usart, uint16_t v);
 int usart_read_byte(usart_t *usart);		// returns -1 if there is no byte available
 
 /* 
@@ -201,7 +202,7 @@ int usart_read_byte(usart_t *usart);		// returns -1 if there is no byte availabl
     Convert a 16 bit value to a decimal number.
     
   Parameter:
-    v: Unsigned 16 bit value, which should be converter.
+    v: Unsigned 16 bit value, which should be converted.
     
   Return:
     A pointer to a static buffer.

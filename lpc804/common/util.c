@@ -462,6 +462,11 @@ void usart_write_string(usart_t *usart, const char *s)
     usart_write_byte(usart, *s++);
 }
 
+void usart_write_u16(usart_t *usart, uint16_t v)
+{
+  usart_write_string(usart, u16toa(v));
+}
+
 int usart_read_byte(usart_t *usart)
 {
   return rb_get(&(usart0_struct_ptr->rb));
