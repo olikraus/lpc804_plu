@@ -164,6 +164,8 @@ int flash_write_page(uint32_t dest_flash_adr, const uint8_t *src_ram_adr)
     Write the content of one page (64 bytes) to target location
     Executes erase and write operation.
     On a LPC804 with 15MHz, this call requires about 3ms
+    The LPC804 probably required 3ms (most subsystems active)
+    --> cap time constant = 3.3V/3ms * 5uF = 5ms
 
   Arguments:
     dest_flash_adr:		Destination address, 64 byte boundary, 0x0000-0x7F7F

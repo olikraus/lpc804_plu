@@ -1,8 +1,13 @@
 /*
 
-  uart_test.c
+  flash_test.c
 
-  This example will sent "Hello World\n" via USART0 interface.
+  This example will the flash page procedures.
+  
+  This example also contains the 
+    uint64_t get_systick(void)
+  procedure to return the number of system ticks since startup.
+
   
   Configuration is 115200 8-N-1. Only "\n" is sent. Receiving terminal should add \r
   (e.g. use add CR function in "minicom")
@@ -51,6 +56,8 @@ uint64_t get_systick(void)
   /* disable interrupts to ensure consistency */
   __disable_irq();
   /* get the current systick value, we will later check, wether there was a reload */
+  /* not sure, whether this is 100% deterministic: */
+  /* the rollover might already happend, and the irq is still pending */
   systick_value_first = SysTick->VAL;
   
   ticks_per_systick_irq = SysTick->LOAD;
