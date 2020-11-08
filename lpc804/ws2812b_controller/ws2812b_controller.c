@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <LPC8xx.h>
 #include <syscon.h>
+#include <iocon.h>
 #include <gpio.h>
 #include <swm.h>
 #include <uart.h>
@@ -42,45 +43,101 @@
 /* special LED in Ring 0 */
 #define LED_R0_TOP 12
 
+/* 1000/SYS_TICK_PERIOD_IN_MS = 1 second, zero is ok in both cases */
+/* delay until which a long press is detected 500/SYS_TICK_PERIOD_IN_MS = half second */
+#define BP_CNT_LONG_PRESS_THRESHOLD (500/SYS_TICK_PERIOD_IN_MS)
+/* debounce delay after button release, can be zero (which are actually SYS_TICK_PERIOD_IN_MS milliseconds */
+#define BP_CNT_DEBOUNCE_DELAY (50/SYS_TICK_PERIOD_IN_MS)
+
+
+/*=======================================================================*/
+/* definitions */
+struct _bp_struct
+{
+  uint8_t pin;
+  uint8_t state;
+  uint8_t cnt;
+  volatile uint8_t event;	/* user must confirm this by writing BP_EVENT_NOTHING into this var */
+};
+typedef struct _bp_struct bp_t;
+
 /*=======================================================================*/
 /* extern */
 
 extern void plu(void);
 
 /*=======================================================================*/
-/* system procedures and sys tick master task */
+/* global variables */
+bp_t bp_middle_button;
+bp_t bp_rot_enc[2];
 
-
-
-volatile uint32_t sys_tick_irq_cnt=0;
-
-void __attribute__ ((interrupt)) SysTick_Handler(void)
-{  
-  sys_tick_irq_cnt++;
-  //GPIOSetBitValue(PORT0, 9, (sys_tick_irq_cnt & 1) == 0?0:1);
-}
 
 /*=======================================================================*/
 
-volatile uint8_t rot_enc_0_value = 0;
-volatile uint8_t rot_enc_1_value = 0;
+struct rot_enc_struct
+{
+    volatile uint8_t value;
+    uint8_t min;
+    uint8_t max;
+    uint8_t is_wrap_around;
+};
+typedef struct rot_enc_struct rot_enc_t;
+
+rot_enc_t rotary_encoder[2];
+
+
+void rot_enc_inc(rot_enc_t *re)
+{
+  if ( re->value < re->max )
+  {
+    re->value++;
+  }
+  else
+  {
+    if ( re->is_wrap_around )
+    {
+      re->value = re->min;
+    }
+  }
+}
+
+void rot_enc_dec(rot_enc_t *re)
+{
+  if ( re->value > re->min )
+  {
+    re->value--;
+  }
+  else
+  {
+    if ( re->is_wrap_around )
+    {
+      re->value = re->max;
+    }
+  }
+}
+
+void rot_enc_setup(rot_enc_t *re, uint8_t value, uint8_t min, uint8_t max, uint8_t is_wrap_around)
+{
+  if ( value < min )
+    value = min;
+  if ( value > max )
+    value = max;
+  re->value = value;
+  re->min = min;
+  re->max = max;
+  re->is_wrap_around = is_wrap_around;
+}
 
 void __attribute__ ((interrupt)) PININT0_Handler(void)
 {  
   LPC_PIN_INT->IST = 1;		// clear interrupt
   if ( LPC_GPIO_PORT->B0[ROT_ENC_0_DIR_PIN] == ROT_ENC_0_CW_DIR )
   {
-    if ( rot_enc_0_value < 255 )
-    {
-      rot_enc_0_value++;
-    }
+    rot_enc_inc(rotary_encoder+0);
   }
   else
   {
-    if ( rot_enc_0_value > 0 )
-    {
-      rot_enc_0_value--;
-    }
+    rot_enc_dec(rotary_encoder+0);
   }    
 }
 
@@ -90,17 +147,11 @@ void __attribute__ ((interrupt)) PININT1_Handler(void)
   LPC_PIN_INT->IST = 2;		// clear interrupt
   if ( LPC_GPIO_PORT->B0[ROT_ENC_1_DIR_PIN] == ROT_ENC_1_CW_DIR )
   {
-    if ( rot_enc_1_value < 255 )
-    {
-      rot_enc_1_value++;
-    }
+    rot_enc_inc(rotary_encoder+1);
   }
   else
   {
-    if ( rot_enc_1_value > 0 )
-    {
-      rot_enc_1_value--;
-    }
+    rot_enc_dec(rotary_encoder+1);
   }    
 }
 
@@ -249,7 +300,6 @@ void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t
 {
     uint8_t region, remainder, p, q, t;
 
-    v = ((uint16_t)v*(uint16_t)v/256);		// add a nonlinear curve to v
 
     if (s == 0)
     {
@@ -352,11 +402,15 @@ void led_draw_h_selector(int slot, unsigned pos, unsigned max, uint8_t s, uint8_
 void led_draw_v_selector(int slot, unsigned pos, unsigned max, uint8_t h, uint8_t s)
 {
   uint8_t v = pos * 256 / max;
+  uint8_t vv;
   uint8_t r, g, b;
   unsigned i, j;
   for( i = 0; i < LED_R0_CNT; i++ )
   {
-    hsv_to_rgb(h, s, v + (i * 256)/LED_R0_CNT, &r, &g, &b);
+    vv = v + (i * 256)/LED_R0_CNT;
+    vv = ((uint16_t)vv*(uint16_t)vv)/256;		// add a nonlinear curve to v
+
+    hsv_to_rgb(h, s, vv, &r, &g, &b);
     j = LED_R0_CNT - 1 + LED_R0_TOP - i ;
     j %= LED_R0_CNT;
     led_set_rgb(slot, j, r, g, b);
@@ -365,6 +419,76 @@ void led_draw_v_selector(int slot, unsigned pos, unsigned max, uint8_t h, uint8_
   led_set_rgb(0, LED_R0_TOP-1, 0, 0, 0);
   led_set_rgb(0, LED_R0_TOP+1, 0, 0, 0);
 }
+
+/*=======================================================================*/
+/* rotary encoder / led state machine */
+
+/* the number of different values, which can be changed by the rotary encoder */
+#define REL_STATES 5
+
+struct rel_struct
+{
+  int slot;		// led slot for this rotary encoder 0 or 1
+  int state;
+  uint8_t value[REL_STATES];		// the current value of the rotary encoder for this state
+  uint8_t max[REL_STATES];		// a constant, but kept for easier calculation
+};
+
+typedef struct rel_struct rel_t;
+
+rel_t rot_enc_led[2];
+
+void rel_init(rel_t *rel, int slot)
+{
+  int i;
+  rel->slot = slot;
+  rel->state = 0;
+  for( i = 0; i < REL_STATES; i++ )
+  {
+    rel->value[i] = 0;
+    rel->max[i] = 20;
+  }
+}
+
+
+void rel_show_led(rel_t *rel)
+{
+  switch(rel->state)
+  {
+    case 0:
+      led_draw_h_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 255, 50);
+      led_out(rel->slot);
+      break;
+    case 1:
+      break;
+    case 2:
+      break;
+    case 3:
+      break;
+    case 4:      
+      break;
+  }
+}
+
+void rel_set_state(rel_t *rel, int state)
+{
+  rel->state = state;
+  rot_enc_setup(rotary_encoder+rel->slot, rel->value[rel->state], 0, rel->max[rel->state], 0);
+  rel_show_led(rel);
+}
+
+/* copy the value from the rotary encoder detection to the rel object and show the result on the LED ring */
+void rel_read_and_update_led(rel_t *rel)
+{
+  uint8_t v = rotary_encoder[rel->slot].value;
+  if ( rel->value[rel->state] != v )
+  {
+    /* update LED ring only if required */
+    rel->value[rel->state] = v;
+    rel_show_led(rel);
+  }
+}
+
 
 /*=======================================================================*/
 static const unsigned char u8toa_tab[3]  = { 100, 10, 1 } ;
@@ -396,6 +520,116 @@ const char *u8toa(uint8_t v, uint8_t d)
   return u8toap(buf, v) + d;
 }
 
+/*=======================================================================*/
+/* button procedures */
+
+#define BP_STATE_WAIT 0
+#define BP_STATE_DETECTED 1
+#define BP_STATE_LONG_DETECTED 2
+#define BP_STATE_OFF_DEBOUNCE 3
+
+
+#define BP_EVENT_NOTHING 0
+#define BP_EVENT_SHORT_PRESS 1
+#define BP_EVENT_LONG_PRESS 2
+
+void bp_init(bp_t *bp, uint8_t pin)
+{
+  volatile uint32_t *iocon = get_iocon_by_port(pin);
+  
+  GPIOSetDir( PORT0, pin, INPUT);
+  *iocon &= IOCON_MODE_MASK;
+  *iocon |= MODE_PULLUP;
+  
+  //get_iocon_by_port(pin) = MODE_PULLUP | 
+  bp->pin = pin;
+  bp->state = BP_STATE_WAIT;
+  bp->cnt = 0;
+  bp->event = BP_EVENT_NOTHING;
+}
+
+void bp_execute(bp_t *bp)
+{
+  int value = GPIOGetPinValue( 0, bp->pin ); // 0 or !0
+  switch( bp->state )
+  {
+    case BP_STATE_WAIT:
+      if ( bp->event == BP_EVENT_NOTHING )
+      {
+	if ( value == 0 )
+	{
+	  bp->cnt = BP_CNT_LONG_PRESS_THRESHOLD;
+	  bp->state = BP_STATE_DETECTED;
+	}
+      }
+      break;
+    case BP_STATE_DETECTED:
+      if ( value != 0 )
+      {
+	bp->state = BP_STATE_OFF_DEBOUNCE;
+	bp->cnt = BP_CNT_DEBOUNCE_DELAY;
+	bp->event = BP_EVENT_SHORT_PRESS;
+      }
+      else if ( bp->cnt == 0 )
+      {
+	bp->state = BP_STATE_LONG_DETECTED;	
+      }
+      else
+      {
+	bp->cnt--;
+      }
+      break;
+    case BP_STATE_LONG_DETECTED:
+      if ( value != 0 )
+      {
+	bp->state = BP_STATE_OFF_DEBOUNCE;
+	bp->cnt = BP_CNT_DEBOUNCE_DELAY;
+	bp->event = BP_EVENT_LONG_PRESS;
+      }
+      break;
+    case BP_STATE_OFF_DEBOUNCE:
+      if ( bp->cnt == 0 )
+      {
+	bp->state = BP_STATE_WAIT;
+      }
+      else
+      {
+	bp->cnt--;
+      }
+      break;
+    default:
+      bp->state = BP_STATE_WAIT;
+      break;
+  }
+}
+
+/* return current event and remove the ecent from bp */
+int bp_get_event(bp_t *bp)
+{
+  int e = bp->event;
+  bp->event = BP_EVENT_NOTHING;
+  return e;
+}
+
+
+/*=======================================================================*/
+/* system procedures and sys tick master task */
+
+
+
+volatile uint32_t sys_tick_irq_cnt=0;
+
+void __attribute__ ((interrupt)) SysTick_Handler(void)
+{  
+  sys_tick_irq_cnt++;
+  //GPIOSetBitValue(PORT0, 9, (sys_tick_irq_cnt & 1) == 0?0:1);
+  
+  bp_execute(&bp_middle_button);
+  bp_execute(&(bp_rot_enc[0]));
+  bp_execute(&(bp_rot_enc[1]));
+
+  
+}
 
 
 /*=======================================================================*/
@@ -418,12 +652,8 @@ int __attribute__ ((noinline)) main(void)
   /* if the clock or PLL has been changed, also update the global variable SystemCoreClock */
   SystemCoreClockUpdate();
 
-  /* set systick and start systick interrupt */
-  SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
-  
-  plu();
-  
-  
+  /* hardware subsystem setup */
+  plu();    
   GPIOInit();  
   Enable_Periph_Clock(CLK_IOCON);
   Enable_Periph_Clock(CLK_SWM);
@@ -441,11 +671,25 @@ int __attribute__ ((noinline)) main(void)
   
   NVIC_SetPriority(PININT1_IRQn, (1<<__NVIC_PRIO_BITS) - 1);  /* set Priority */
   NVIC_EnableIRQ(PININT1_IRQn);
-  
 
   ws2812_spi_init();
-
   usart0_init(&usart, 5, /* tx */ 4, /* rx */ 0, usart_rx_buf, 32);  
+
+  bp_init(&bp_middle_button, 19);
+  bp_init(&(bp_rot_enc[0]), 11);
+  bp_init(&(bp_rot_enc[1]), 1);
+
+  rot_enc_setup(rotary_encoder+0, 0, 0, 255, 0);
+  rot_enc_setup(rotary_encoder+1, 0, 0, 255, 0);
+  
+  rel_init(rot_enc_led+0, 0);
+  rel_init(rot_enc_led+1, 1);
+
+  rel_set_state(rot_enc_led+0, 0);
+
+  /* set systick and start systick interrupt (after all subsystems are ready */
+  SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
+  
 
 
   for(;;)
@@ -456,15 +700,18 @@ int __attribute__ ((noinline)) main(void)
     
     for( i = 0; i < 10; i++ )
     {
+      /*
       led_clear(0);
-      led_set_rgb(0, rot_enc_0_value, 40,0,0);
-      led_add_rgb(0, rot_enc_1_value, 0,40,0);
+      //led_set_rgb(0, rotary_encoder[0].value, 40,0,0);
+      //led_add_rgb(0, rotary_encoder[1].value, 0,40,0);
       
-      rot_enc_1_value &= 0x03f;
-      led_draw_h_selector(0, rot_enc_1_value, 0x040, 255, 50);
-      led_draw_v_selector(0, rot_enc_1_value, 0x040, 0, 0);
+      rotary_encoder[1].value &= 0x03f;
+      led_draw_h_selector(0, rotary_encoder[1].value, 0x040, 255, 50);
+      //led_draw_v_selector(0, rotary_encoder[1].value, 0x040, 0, 0);
       led_out(0);
+      */
       
+      rel_read_and_update_led(rot_enc_led+1);
       
       delay_micro_seconds(1000000/20);
     }
@@ -476,11 +723,11 @@ int __attribute__ ((noinline)) main(void)
     usart_write_string(&usart, " dir1=");    
     usart_write_byte(&usart, '0'+dir1);
     
-    usart_write_string(&usart, " rot_enc_0_value=");    
-    usart_write_string(&usart, u8toa(rot_enc_0_value,3));    
+    usart_write_string(&usart, " rotary_encoder[0].value=");    
+    usart_write_string(&usart, u8toa(rotary_encoder[0].value,3));    
 
-    usart_write_string(&usart, " rot_enc_1_value=");    
-    usart_write_string(&usart, u8toa(rot_enc_1_value,3));    
+    usart_write_string(&usart, " rotary_encoder[1].value=");    
+    usart_write_string(&usart, u8toa(rotary_encoder[1].value,3));    
 
     usart_write_string(&usart, " rise=");    
     usart_write_string(&usart, u8toa(LPC_PIN_INT->RISE,3));    
