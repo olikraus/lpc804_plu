@@ -41,7 +41,7 @@
 /* number of LEDs in Ring 0 */
 #define LED_R0_CNT 12
 /* special LED in Ring 0 */
-#define LED_R0_TOP 12
+#define LED_R0_TOP 1
 
 /* 1000/SYS_TICK_PERIOD_IN_MS = 1 second, zero is ok in both cases */
 /* delay until which a long press is detected 500/SYS_TICK_PERIOD_IN_MS = half second */
@@ -377,10 +377,11 @@ void led_out(int slot)
 /*
   draw h selector into given slot
   pos: wrap around
+  max: the highest value of pos
 */
 void led_draw_h_selector(int slot, unsigned pos, unsigned max, uint8_t s, uint8_t v)
 {
-  uint8_t h = pos * 256 / max;
+  uint8_t h = (unsigned)pos * (unsigned)256 / ((unsigned)max+(unsigned)1);
   uint8_t r, g, b;
   unsigned i, j;
   for( i = 0; i < LED_R0_CNT; i++ )
@@ -389,135 +390,43 @@ void led_draw_h_selector(int slot, unsigned pos, unsigned max, uint8_t s, uint8_
       hsv_to_rgb(h + (i * 256)/LED_R0_CNT, s, v, &r, &g, &b);
     else
       hsv_to_rgb(h + (i * 256)/LED_R0_CNT, s, v/2, &r, &g, &b);
-    j = LED_R0_CNT - 1 + LED_R0_TOP - i ;
+    j = LED_R0_CNT - i - 1;
+    j += LED_R0_TOP;
     j %= LED_R0_CNT;
     led_set_rgb(slot, j, r, g, b);
   }
   
-  led_set_rgb(0, LED_R0_TOP-1, 0, 0, 0);
-  led_set_rgb(0, LED_R0_TOP+1, 0, 0, 0);
+  led_set_rgb(0, (LED_R0_TOP)%LED_R0_CNT, 0, 0, 0);
+  led_set_rgb(0, (LED_R0_TOP+LED_R0_CNT-2)%LED_R0_CNT, 0, 0, 0);
 }
 
 
+/*
+  draw h selector into given slot
+  pos: no wrap around, values for pos are 0..max
+  max: the highest value of pos
+*/
 void led_draw_v_selector(int slot, unsigned pos, unsigned max, uint8_t h, uint8_t s)
 {
-  uint8_t v = pos * 256 / max;
+  uint8_t v = (unsigned)pos * (unsigned)255 / ((unsigned)max);
   uint8_t vv;
   uint8_t r, g, b;
   unsigned i, j;
   for( i = 0; i < LED_R0_CNT; i++ )
   {
-    vv = v + (i * 256)/LED_R0_CNT;
+    vv = (unsigned)v + (i * (unsigned)255)/(unsigned)LED_R0_CNT;
     vv = ((uint16_t)vv*(uint16_t)vv)/256;		// add a nonlinear curve to v
 
     hsv_to_rgb(h, s, vv, &r, &g, &b);
-    j = LED_R0_CNT - 1 + LED_R0_TOP - i ;
+    
+    j = LED_R0_CNT - i - 1;
+    j += LED_R0_TOP;
     j %= LED_R0_CNT;
     led_set_rgb(slot, j, r, g, b);
   }
   
-  led_set_rgb(0, LED_R0_TOP-1, 0, 0, 0);
-  led_set_rgb(0, LED_R0_TOP+1, 0, 0, 0);
-}
-
-/*=======================================================================*/
-/* rotary encoder / led state machine */
-
-/* the number of different values, which can be changed by the rotary encoder */
-#define REL_STATES 5
-
-struct rel_struct
-{
-  int slot;		// led slot for this rotary encoder 0 or 1
-  int state;
-  uint8_t value[REL_STATES];		// the current value of the rotary encoder for this state
-  uint8_t max[REL_STATES];		// a constant, but kept for easier calculation
-};
-
-typedef struct rel_struct rel_t;
-
-rel_t rot_enc_led[2];
-
-void rel_init(rel_t *rel, int slot)
-{
-  int i;
-  rel->slot = slot;
-  rel->state = 0;
-  for( i = 0; i < REL_STATES; i++ )
-  {
-    rel->value[i] = 0;
-    rel->max[i] = 20;
-  }
-}
-
-
-void rel_show_led(rel_t *rel)
-{
-  switch(rel->state)
-  {
-    case 0:
-      led_draw_h_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 255, 50);
-      led_out(rel->slot);
-      break;
-    case 1:
-      break;
-    case 2:
-      break;
-    case 3:
-      break;
-    case 4:      
-      break;
-  }
-}
-
-void rel_set_state(rel_t *rel, int state)
-{
-  rel->state = state;
-  rot_enc_setup(rotary_encoder+rel->slot, rel->value[rel->state], 0, rel->max[rel->state], 0);
-  rel_show_led(rel);
-}
-
-/* copy the value from the rotary encoder detection to the rel object and show the result on the LED ring */
-void rel_read_and_update_led(rel_t *rel)
-{
-  uint8_t v = rotary_encoder[rel->slot].value;
-  if ( rel->value[rel->state] != v )
-  {
-    /* update LED ring only if required */
-    rel->value[rel->state] = v;
-    rel_show_led(rel);
-  }
-}
-
-
-/*=======================================================================*/
-static const unsigned char u8toa_tab[3]  = { 100, 10, 1 } ;
-const char *u8toap(char * dest, uint8_t v)
-{
-  uint8_t pos;
-  uint8_t d;
-  uint8_t c;
-  for( pos = 0; pos < 3; pos++ )
-  {
-      d = '0';
-      c = *(u8toa_tab+pos);
-      while( v >= c )
-      {
-	v -= c;
-	d++;
-      }
-      dest[pos] = d;
-  }  
-  dest[3] = '\0';
-  return dest;
-}
-
-/* v = value, d = number of digits */
-const char *u8toa(uint8_t v, uint8_t d)
-{
-  static char buf[4];
-  d = 3-d;
-  return u8toap(buf, v) + d;
+  //led_set_rgb(0, (LED_R0_TOP)%LED_R0_CNT, 0, 0, 0);
+  //led_set_rgb(0, (LED_R0_TOP+LED_R0_CNT-2)%LED_R0_CNT, 0, 0, 0);
 }
 
 /*=======================================================================*/
@@ -613,6 +522,126 @@ int bp_get_event(bp_t *bp)
 
 
 /*=======================================================================*/
+/* rotary encoder / led state machine */
+
+/* the number of different values, which can be changed by the rotary encoder */
+#define REL_STATES 5
+
+struct rel_struct
+{
+  int slot;		// led slot for this rotary encoder 0 or 1
+  int state;
+  uint8_t value[REL_STATES];		// the current value of the rotary encoder for this state
+  uint8_t max[REL_STATES];		// a constant, but kept for easier calculation
+};
+
+typedef struct rel_struct rel_t;
+
+rel_t rot_enc_led[2];
+
+void rel_init(rel_t *rel, int slot)
+{
+  int i;
+  rel->slot = slot;
+  rel->state = 0;
+  for( i = 0; i < REL_STATES; i++ )
+  {
+    rel->value[i] = 0;
+    rel->max[i] = 20;
+  }
+  rel->max[0] = 60;
+}
+
+
+void rel_show_led(rel_t *rel)
+{
+  switch(rel->state)
+  {
+    case 0:
+      led_draw_h_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 255, 50);
+      led_out(rel->slot);
+      break;
+    case 1:
+      led_draw_v_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 0, 0);
+      led_out(rel->slot);
+      break;
+    case 2:
+      break;
+    case 3:
+      break;
+    case 4:      
+      break;
+  }
+}
+
+void rel_set_state(rel_t *rel, int state)
+{
+  int is_wrap_around = 0;
+  if ( rel->state == 1 )
+    is_wrap_around = 1;
+  rel->state = state;
+  rot_enc_setup(rotary_encoder+rel->slot, rel->value[rel->state], 0, rel->max[rel->state], is_wrap_around);
+  rel_show_led(rel);
+}
+
+/* copy the value from the rotary encoder detection to the rel object and show the result on the LED ring */
+void rel_read_and_update_led(rel_t *rel)
+{
+  int button = bp_get_event(bp_rot_enc+rel->slot);
+  
+  if ( button == BP_EVENT_SHORT_PRESS )
+  {
+    int state = rel->state;
+    state++;
+    if ( state >= 2 )
+      state = 0;
+    rel_set_state(rel, state);  // this will assign the new state and also set the led ring for the rotary encoder
+  }
+  else
+  {
+    uint8_t v = rotary_encoder[rel->slot].value;
+    if ( rel->value[rel->state] != v )
+    {
+      /* update LED ring only if required */
+      rel->value[rel->state] = v;
+      rel_show_led(rel);
+    }
+  }
+}
+
+
+/*=======================================================================*/
+static const unsigned char u8toa_tab[3]  = { 100, 10, 1 } ;
+const char *u8toap(char * dest, uint8_t v)
+{
+  uint8_t pos;
+  uint8_t d;
+  uint8_t c;
+  for( pos = 0; pos < 3; pos++ )
+  {
+      d = '0';
+      c = *(u8toa_tab+pos);
+      while( v >= c )
+      {
+	v -= c;
+	d++;
+      }
+      dest[pos] = d;
+  }  
+  dest[3] = '\0';
+  return dest;
+}
+
+/* v = value, d = number of digits */
+const char *u8toa(uint8_t v, uint8_t d)
+{
+  static char buf[4];
+  d = 3-d;
+  return u8toap(buf, v) + d;
+}
+
+
+/*=======================================================================*/
 /* system procedures and sys tick master task */
 
 
@@ -686,6 +715,7 @@ int __attribute__ ((noinline)) main(void)
   rel_init(rot_enc_led+1, 1);
 
   rel_set_state(rot_enc_led+0, 0);
+  rel_set_state(rot_enc_led+1, 0);
 
   /* set systick and start systick interrupt (after all subsystems are ready */
   SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
@@ -716,28 +746,22 @@ int __attribute__ ((noinline)) main(void)
       delay_micro_seconds(1000000/20);
     }
     
-    dir0 = LPC_GPIO_PORT->B0[ROT_ENC_0_DIR_PIN];
-    dir1 = LPC_GPIO_PORT->B0[ROT_ENC_1_DIR_PIN];
-    usart_write_string(&usart, "dir0=");    
-    usart_write_byte(&usart, '0'+dir0);
-    usart_write_string(&usart, " dir1=");    
-    usart_write_byte(&usart, '0'+dir1);
-    
-    usart_write_string(&usart, " rotary_encoder[0].value=");    
-    usart_write_string(&usart, u8toa(rotary_encoder[0].value,3));    
 
-    usart_write_string(&usart, " rotary_encoder[1].value=");    
-    usart_write_string(&usart, u8toa(rotary_encoder[1].value,3));    
+    usart_write_string(&usart, "rel state=");    
+    usart_write_string(&usart, u8toa(rot_enc_led[1].state,1));    
+    
+    usart_write_string(&usart, " rel value=");    
+    usart_write_string(&usart, u8toa(rot_enc_led[1].value[rot_enc_led[1].state],3));    
 
-    usart_write_string(&usart, " rise=");    
-    usart_write_string(&usart, u8toa(LPC_PIN_INT->RISE,3));    
-    
-    usart_write_string(&usart, " ist=");    
-    usart_write_string(&usart, u8toa(LPC_PIN_INT->IST,3));    
-    
-    usart_write_string(&usart, " ");    
-    usart_write_bits(&usart, LPC_PLU0->OUTPUTS, 8);
-    
+    usart_write_string(&usart, " rel max=");    
+    usart_write_string(&usart, u8toa(rot_enc_led[1].max[rot_enc_led[1].state] ,3));    
+
+    usart_write_string(&usart, " re value=");    
+    usart_write_string(&usart, u8toa(rotary_encoder[1].value ,3));    
+
+    usart_write_string(&usart, " re max=");    
+    usart_write_string(&usart, u8toa(rotary_encoder[1].max ,3));    
+
     
     usart_write_string(&usart, "\n"); 
     
