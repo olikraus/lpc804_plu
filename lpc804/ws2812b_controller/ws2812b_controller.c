@@ -667,15 +667,21 @@ int bp_get_event(bp_t *bp)
 typedef struct reui_struct reui_t;
 typedef struct rel_struct rel_t;
 
+void rel_draw_h_selector(rel_t *rel);
+void rel_draw_s_selector(rel_t *rel);
+void rel_draw_v_selector(rel_t *rel);
+void rel_draw_position_selector(rel_t *rel);
+void rel_draw_width_selector(rel_t *rel);
+
 /* rotary encoder user interface definitions */
 struct reui_struct
 {
+  void (*draw_ui)(rel_t *);
   uint8_t is_wrap_around;
   uint8_t max;
   
   uint8_t value;
-  void (*draw_ui)(rel_t *);
-};
+ };
 
 
 /* the number of different values, which can be changed by the rotary encoder */
@@ -685,37 +691,63 @@ struct rel_struct
 {
   int slot;		// led slot for this rotary encoder 0 or 1
   int state;
-  uint8_t value[REL_STATES];		// the current value of the rotary encoder for this state
-  uint8_t max[REL_STATES];		// a constant, but kept for easier calculation
+  
+  uint8_t *ui_list;
+  
+  //uint8_t value[REL_STATES];		// the current value of the rotary encoder for this state
+  //uint8_t max[REL_STATES];		// a constant, but kept for easier calculation
 };
+
+reui_t rot_enc_user_interface[] = 
+{
+  { rel_draw_h_selector, /* wrap=*/ 1,  /*max=*/ LED_R0_CNT*5, /* value=*/ 0},
+  { rel_draw_s_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0},
+  { rel_draw_v_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0},
+  { rel_draw_position_selector, /* wrap=*/ 1,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0},
+  { rel_draw_width_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0}
+};
+
+#define UI_UNIFIED_VALUE(x) \
+  ((uint8_t)(((unsigned)rot_enc_user_interface[x].value*(unsigned)255)/(unsigned)rot_enc_user_interface[x].max))
+
+#define UI_H UI_UNIFIED_VALUE(0)
+#define UI_S UI_UNIFIED_VALUE(1)
+#define UI_V UI_UNIFIED_VALUE(2)
+#define UI_P UI_UNIFIED_VALUE(3)
+#define UI_W UI_UNIFIED_VALUE(4)
 
 void rel_draw_h_selector(rel_t *rel)
 {
-  led_draw_h_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 255, 40);
+  reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
+  led_draw_h_selector(rel->slot, ui->value, ui->max, 255, 40);
   led_out(rel->slot);
 }
 
 void rel_draw_s_selector(rel_t *rel)
 {
-  led_draw_s_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[0]*255)/(unsigned)rel->max[0], 40);
+  reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
+  led_draw_s_selector(rel->slot, ui->value, ui->max, UI_H, 40);
   led_out(rel->slot);
 }
 
 void rel_draw_v_selector(rel_t *rel)
 {
-  led_draw_v_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 0, 0);
+  reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
+  led_draw_v_selector(rel->slot, ui->value, ui->max, 0, 0);
   led_out(rel->slot);
 }
 
 void rel_draw_position_selector(rel_t *rel)
 {
-  led_draw_position_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[4]*255)/(unsigned)rel->max[4], 40);
+  reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
+  led_draw_position_selector(rel->slot, ui->value, ui->max, UI_W, 40);
   led_out(rel->slot);
 }
 
 void rel_draw_width_selector(rel_t *rel)
 {
-  led_draw_width_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[3]*256)/((unsigned)rel->max[3]+1), 40);
+  reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
+  led_draw_width_selector(rel->slot, ui->value, ui->max, UI_P, 40);
   led_out(rel->slot);
 }
 
@@ -724,52 +756,41 @@ rel_t rot_enc_led[2];
 
 void rel_init(rel_t *rel, int slot)
 {
-  int i;
+  //int i;
+
+  static uint8_t color[] = { 0, 1, 2, 255};
+  static uint8_t geometry[] = { 3, 4, 255};
+  
   rel->slot = slot;
   rel->state = 0;
+  if ( slot == 0 )
+    rel->ui_list = color;
+  else
+    rel->ui_list = geometry;
+    
+  /*
   for( i = 0; i < REL_STATES; i++ )
   {
     rel->value[i] = 0;
     rel->max[i] = LED_R0_CNT*2;
   }
   rel->max[0] = LED_R0_CNT*5;
+  */
 }
 
 
 void rel_show_led(rel_t *rel)
 {
-  switch(rel->state)
-  {
-    case 0:
-      led_draw_h_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 255, 40);
-      led_out(rel->slot);
-      break;
-    case 1:
-      led_draw_s_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[0]*255)/(unsigned)rel->max[0], 40);
-      led_out(rel->slot);
-      break;
-    case 2:
-      led_draw_v_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 0, 0);
-      led_out(rel->slot);
-      break;
-    case 3:
-      led_draw_position_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[4]*255)/(unsigned)rel->max[4], 40);
-      led_out(rel->slot);
-      break;
-    case 4:      
-      led_draw_width_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[3]*256)/((unsigned)rel->max[3]+1), 40);
-      led_out(rel->slot);
-      break;
-  }
+  reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
+  ui->draw_ui(rel);
 }
 
 void rel_set_state(rel_t *rel, int state)
 {
-  int is_wrap_around = 0;
-  if ( state == 0 || state == 3 )
-    is_wrap_around = 1;
+  reui_t *ui;
   rel->state = state;
-  rot_enc_setup(rotary_encoder+rel->slot, rel->value[rel->state], 0, rel->max[rel->state], is_wrap_around);
+  ui = rot_enc_user_interface + rel->ui_list[rel->state];
+  rot_enc_setup(rotary_encoder+rel->slot, ui->value, 0, ui->max, ui->is_wrap_around);
   rel_show_led(rel);
 }
 
@@ -782,17 +803,18 @@ void rel_read_and_update_led(rel_t *rel)
   {
     int state = rel->state;
     state++;
-    if ( state >= 5 )
+    if ( rel->ui_list[state] > 30 )	// actually this should be == 255 
       state = 0;
     rel_set_state(rel, state);  // this will assign the new state and also set the led ring for the rotary encoder
   }
   else
   {
     uint8_t v = rotary_encoder[rel->slot].value;
-    if ( rel->value[rel->state] != v )
+    reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
+    if ( ui->value != v )
     {
       /* update LED ring only if required */
-      rel->value[rel->state] = v;
+      ui->value = v;
       rel_show_led(rel);
     }
   }
@@ -940,18 +962,17 @@ int __attribute__ ((noinline)) main(void)
     usart_write_string(&usart, "rel state=");    
     usart_write_string(&usart, u8toa(rot_enc_led[1].state,1));    
     
-    usart_write_string(&usart, " rel value=");    
-    usart_write_string(&usart, u8toa(rot_enc_led[1].value[rot_enc_led[1].state],3));    
+    usart_write_string(&usart, " re value=");    
+    usart_write_string(&usart, u8toa(rotary_encoder[0].value ,3));    
 
-    usart_write_string(&usart, " rel max=");    
-    usart_write_string(&usart, u8toa(rot_enc_led[1].max[rot_enc_led[1].state] ,3));    
+    usart_write_string(&usart, " re max=");    
+    usart_write_string(&usart, u8toa(rotary_encoder[0].max ,3));    
 
     usart_write_string(&usart, " re value=");    
     usart_write_string(&usart, u8toa(rotary_encoder[1].value ,3));    
 
     usart_write_string(&usart, " re max=");    
     usart_write_string(&usart, u8toa(rotary_encoder[1].max ,3));    
-
     
     usart_write_string(&usart, "\n"); 
     
