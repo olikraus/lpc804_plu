@@ -9,6 +9,10 @@
   
   Unix: "tail -f /dev/ttyUSB0" should also work.
 
+  PIO0_..
+  10			data out led ring for rotaray encoder 0
+  15			data out led ring for rotaray encoder 1
+
 */
 
 #include <stddef.h>
@@ -343,34 +347,43 @@ void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t
 
 /*=======================================================================*/
 
-uint8_t led_ring_0[LED_R0_CNT*3];
+uint8_t led_rot_enc_ring[2][LED_R0_CNT*3];
 
 void led_clear(int slot)
 {
   int i;
   for( i = 0; i < LED_R0_CNT*3; i++ )
-    led_ring_0[i] = 0;
+    led_rot_enc_ring[slot][i] = 0;
 }
+
+/* WS2812B has GRB sequence instead of RGB */
 
 void led_set_rgb(int slot, unsigned pos, uint8_t r, uint8_t g, uint8_t b)
 {
   pos %= LED_R0_CNT;
-  led_ring_0[pos*3] = r;
-  led_ring_0[pos*3+1] = g;
-  led_ring_0[pos*3+2] = b;
+  led_rot_enc_ring[slot][pos*3] = g;
+  led_rot_enc_ring[slot][pos*3+1] = r;
+  led_rot_enc_ring[slot][pos*3+2] = b;
 }
 
 void led_add_rgb(int slot, unsigned pos, uint8_t r, uint8_t g, uint8_t b)
 {
-  pos %= LED_R0_CNT;
-  led_ring_0[pos*3] += r;
-  led_ring_0[pos*3+1] += g;
-  led_ring_0[pos*3+2] += b;
+  pos %= LED_R0_CNT;		
+  led_rot_enc_ring[slot][pos*3] += g;
+  led_rot_enc_ring[slot][pos*3+1] += r;
+  led_rot_enc_ring[slot][pos*3+2] += b;
 }
 
 void led_out(int slot)
 {
-  ws2812_spi_out(15, led_ring_0, LED_R0_CNT*3);
+  if ( slot == 0 )
+  {
+    ws2812_spi_out(10, led_rot_enc_ring[0], LED_R0_CNT*3);	// Output via PIO0_10
+  }
+  else
+  {
+    ws2812_spi_out(15, led_rot_enc_ring[1], LED_R0_CNT*3);	// Output via PIO0_15
+  }
 }
 
 
@@ -396,8 +409,8 @@ void led_draw_h_selector(int slot, unsigned pos, unsigned max, uint8_t s, uint8_
     led_set_rgb(slot, j, r, g, b);
   }
   
-  led_set_rgb(0, (LED_R0_TOP)%LED_R0_CNT, 0, 0, 0);
-  led_set_rgb(0, (LED_R0_TOP+LED_R0_CNT-2)%LED_R0_CNT, 0, 0, 0);
+  led_set_rgb(slot, (LED_R0_TOP)%LED_R0_CNT, 0, 0, 0);
+  led_set_rgb(slot, (LED_R0_TOP+LED_R0_CNT-2)%LED_R0_CNT, 0, 0, 0);
 }
 
 
@@ -425,9 +438,135 @@ void led_draw_v_selector(int slot, unsigned pos, unsigned max, uint8_t h, uint8_
     led_set_rgb(slot, j, r, g, b);
   }
   
-  //led_set_rgb(0, (LED_R0_TOP)%LED_R0_CNT, 0, 0, 0);
+  //led_set_rgb(slot, (LED_R0_TOP)%LED_R0_CNT, 0, 0, 0);
+  //led_set_rgb(slot, (LED_R0_TOP+LED_R0_CNT-2)%LED_R0_CNT, 0, 0, 0);
+}
+
+
+
+/*
+  draw s selector into given slot
+  pos: no wrap around, values for pos are 0..max
+  max: the highest value of pos
+*/
+void led_draw_s_selector(int slot, unsigned pos, unsigned max, uint8_t h, uint8_t v)
+{
+  uint8_t s = (unsigned)pos * (unsigned)255 / ((unsigned)max);
+  uint8_t r, g, b;
+  unsigned i, j;
+  for( i = 0; i < LED_R0_CNT; i++ )
+  {
+    hsv_to_rgb(h, (unsigned)s + (i * (unsigned)255)/(unsigned)LED_R0_CNT, v, &r, &g, &b);
+    
+    j = LED_R0_CNT - i - 1;
+    j += LED_R0_TOP;
+    j %= LED_R0_CNT;
+    led_set_rgb(slot, j, r, g, b);
+  }
+  
+  //led_set_rgb(slot, (LED_R0_TOP)%LED_R0_CNT, 0, 0, 0);
+  //led_set_rgb(slot, (LED_R0_TOP+LED_R0_CNT-2)%LED_R0_CNT, 0, 0, 0);
+}
+
+/*
+  x: position on the ring: 0..255
+  w: width of the trapezoid, 0..255
+  r: length of left and right ramp, 0..255 ( but usually <30 )
+*/
+uint8_t trapezoid_fn(uint8_t x, uint8_t w, uint8_t r)
+{
+  uint8_t tu;
+  uint8_t tl = 0;
+  uint8_t yu;
+  uint8_t yl;
+  if ( w == 0 )
+    return 0;
+  if ( w == 255 )
+    return 255;
+  tu = w+1;
+  
+  tu/=2;
+  if ( x <= tu )
+    return 255;
+  tl -= tu;
+  if ( x >= tl )
+    return 255;
+
+  if ( x > tu+r )
+    yu = 0;
+  else
+    yu = (((unsigned)tu+r-x)*(unsigned)256)/(unsigned)r;
+  
+  if ( x < tl-r )
+    yl = 0;
+  else
+    yl = (((unsigned)x-tl+r)*(unsigned)256)/(unsigned)r;
+  
+  if ( yu > yl )
+    return yu;
+  return yl;
+}
+
+void led_draw_position_selector(int slot, unsigned pos, unsigned max, uint8_t w, uint8_t v)
+{
+  uint8_t p = (unsigned)pos * (unsigned)256 / ((unsigned)(max+1));
+  uint8_t t;
+  //uint8_t r, g, b;
+  unsigned i, j;
+  for( i = 0; i < LED_R0_CNT; i++ )
+  {
+    //hsv_to_rgb(h, (unsigned)s + (i * (unsigned)255)/(unsigned)LED_R0_CNT, v, &r, &g, &b);
+    
+    t = trapezoid_fn( p + (i * (unsigned)256)/(unsigned)LED_R0_CNT, w==0?1:w, 255/LED_R0_CNT);
+    
+    t = ((unsigned)t*(unsigned)v)/(unsigned)256;
+    
+    j = LED_R0_CNT - i - 1;
+    j += LED_R0_TOP;
+    j %= LED_R0_CNT;
+    if ( w == 0 )
+      led_set_rgb(slot, j, 0, 0, t);
+    else
+      led_set_rgb(slot, j, t, t, t);
+  }
+  
+  //led_set_rgb(slot, 0, 40, 0, 0);
+  //led_set_rgb(slot, 1, 0, 40, 0);
+  //led_set_rgb(slot, 2, 0, 0, 40);
+  //led_set_rgb(slot, 3, 0, 0, 40);
+  //led_set_rgb(slot, (LED_R0_TOP)%LED_R0_CNT0, 40, 0, 0);
+  //led_set_rgb(slot, (LED_R0_TOP+LED_R0_CNT-2)%LED_R0_CNT, 0, 0, 0);
+}
+
+
+void led_draw_width_selector(int slot, unsigned pos, unsigned max, uint8_t p, uint8_t v)
+{
+  uint8_t w = (unsigned)pos * (unsigned)255 / ((unsigned)(max));
+  uint8_t t;
+  //uint8_t r, g, b;
+  unsigned i, j;
+  for( i = 0; i < LED_R0_CNT; i++ )
+  {
+    //hsv_to_rgb(h, (unsigned)s + (i * (unsigned)255)/(unsigned)LED_R0_CNT, v, &r, &g, &b);
+    
+    t = trapezoid_fn( p + (i * (unsigned)256)/(unsigned)LED_R0_CNT, w, 255/LED_R0_CNT);
+    
+    t = ((unsigned)t*(unsigned)v)/(unsigned)256;
+    
+    j = LED_R0_CNT - i - 1;
+    j += LED_R0_TOP;
+    j %= LED_R0_CNT;
+    led_set_rgb(slot, j, t, t, t);
+  }
+  
+  //led_set_rgb(0, 0, 40, 0, 0);
+  //led_set_rgb(0, 1, 0, 40, 0);
+  //led_set_rgb(0, 2, 0, 0, 40);
+  //led_set_rgb(0, 3, 0, 0, 40);
+  //led_set_rgb(0, (LED_R0_TOP)%LED_R0_CNT0, 40, 0, 0);
   //led_set_rgb(0, (LED_R0_TOP+LED_R0_CNT-2)%LED_R0_CNT, 0, 0, 0);
 }
+
 
 /*=======================================================================*/
 /* button procedures */
@@ -524,6 +663,21 @@ int bp_get_event(bp_t *bp)
 /*=======================================================================*/
 /* rotary encoder / led state machine */
 
+
+typedef struct reui_struct reui_t;
+typedef struct rel_struct rel_t;
+
+/* rotary encoder user interface definitions */
+struct reui_struct
+{
+  uint8_t is_wrap_around;
+  uint8_t max;
+  
+  uint8_t value;
+  void (*draw_ui)(rel_t *);
+};
+
+
 /* the number of different values, which can be changed by the rotary encoder */
 #define REL_STATES 5
 
@@ -535,7 +689,36 @@ struct rel_struct
   uint8_t max[REL_STATES];		// a constant, but kept for easier calculation
 };
 
-typedef struct rel_struct rel_t;
+void rel_draw_h_selector(rel_t *rel)
+{
+  led_draw_h_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 255, 40);
+  led_out(rel->slot);
+}
+
+void rel_draw_s_selector(rel_t *rel)
+{
+  led_draw_s_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[0]*255)/(unsigned)rel->max[0], 40);
+  led_out(rel->slot);
+}
+
+void rel_draw_v_selector(rel_t *rel)
+{
+  led_draw_v_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 0, 0);
+  led_out(rel->slot);
+}
+
+void rel_draw_position_selector(rel_t *rel)
+{
+  led_draw_position_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[4]*255)/(unsigned)rel->max[4], 40);
+  led_out(rel->slot);
+}
+
+void rel_draw_width_selector(rel_t *rel)
+{
+  led_draw_width_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[3]*256)/((unsigned)rel->max[3]+1), 40);
+  led_out(rel->slot);
+}
+
 
 rel_t rot_enc_led[2];
 
@@ -547,9 +730,9 @@ void rel_init(rel_t *rel, int slot)
   for( i = 0; i < REL_STATES; i++ )
   {
     rel->value[i] = 0;
-    rel->max[i] = 20;
+    rel->max[i] = LED_R0_CNT*2;
   }
-  rel->max[0] = 60;
+  rel->max[0] = LED_R0_CNT*5;
 }
 
 
@@ -558,18 +741,24 @@ void rel_show_led(rel_t *rel)
   switch(rel->state)
   {
     case 0:
-      led_draw_h_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 255, 50);
+      led_draw_h_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 255, 40);
       led_out(rel->slot);
       break;
     case 1:
-      led_draw_v_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 0, 0);
+      led_draw_s_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[0]*255)/(unsigned)rel->max[0], 40);
       led_out(rel->slot);
       break;
     case 2:
+      led_draw_v_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], 0, 0);
+      led_out(rel->slot);
       break;
     case 3:
+      led_draw_position_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[4]*255)/(unsigned)rel->max[4], 40);
+      led_out(rel->slot);
       break;
     case 4:      
+      led_draw_width_selector(rel->slot, rel->value[rel->state], rel->max[rel->state], ((unsigned)rel->value[3]*256)/((unsigned)rel->max[3]+1), 40);
+      led_out(rel->slot);
       break;
   }
 }
@@ -577,7 +766,7 @@ void rel_show_led(rel_t *rel)
 void rel_set_state(rel_t *rel, int state)
 {
   int is_wrap_around = 0;
-  if ( rel->state == 1 )
+  if ( state == 0 || state == 3 )
     is_wrap_around = 1;
   rel->state = state;
   rot_enc_setup(rotary_encoder+rel->slot, rel->value[rel->state], 0, rel->max[rel->state], is_wrap_around);
@@ -593,7 +782,7 @@ void rel_read_and_update_led(rel_t *rel)
   {
     int state = rel->state;
     state++;
-    if ( state >= 2 )
+    if ( state >= 5 )
       state = 0;
     rel_set_state(rel, state);  // this will assign the new state and also set the led ring for the rotary encoder
   }
@@ -654,8 +843,8 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
   //GPIOSetBitValue(PORT0, 9, (sys_tick_irq_cnt & 1) == 0?0:1);
   
   bp_execute(&bp_middle_button);
-  bp_execute(&(bp_rot_enc[0]));
-  bp_execute(&(bp_rot_enc[1]));
+  bp_execute(bp_rot_enc+0);
+  bp_execute(bp_rot_enc+1);
 
   
 }
@@ -705,8 +894,8 @@ int __attribute__ ((noinline)) main(void)
   usart0_init(&usart, 5, /* tx */ 4, /* rx */ 0, usart_rx_buf, 32);  
 
   bp_init(&bp_middle_button, 19);
-  bp_init(&(bp_rot_enc[0]), 11);
-  bp_init(&(bp_rot_enc[1]), 1);
+  bp_init(bp_rot_enc+0, 11);
+  bp_init(bp_rot_enc+1, 1);
 
   rot_enc_setup(rotary_encoder+0, 0, 0, 255, 0);
   rot_enc_setup(rotary_encoder+1, 0, 0, 255, 0);
@@ -741,6 +930,7 @@ int __attribute__ ((noinline)) main(void)
       led_out(0);
       */
       
+      rel_read_and_update_led(rot_enc_led+0);
       rel_read_and_update_led(rot_enc_led+1);
       
       delay_micro_seconds(1000000/20);
