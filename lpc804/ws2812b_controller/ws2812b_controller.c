@@ -431,6 +431,7 @@ static const kelvin_rgb_t kelvin_to_rgb_map[] =
     {/*6800,*/ 249, 246, 255},
     {/*6900,*/ 247, 245, 255},
     {/*7000,*/ 245, 243, 255},
+#ifdef OBSOLETE
     {/*7100,*/ 243, 242, 255},
     {/*7200,*/ 240, 241, 255},
     {/*7300,*/ 239, 240, 255},
@@ -481,6 +482,7 @@ static const kelvin_rgb_t kelvin_to_rgb_map[] =
     {/*11800,*/ 196, 210, 255},
     {/*11900,*/ 195, 210, 255},
     {/*12000,*/ 195, 209, 255}  
+#endif
 };
 
 void kelvin_to_rgb(uint8_t kelvin, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
@@ -931,12 +933,14 @@ int bp_get_event(bp_t *bp)
 /* light sources specification */
 #define ARGS_PER_LIGHT 8
 /*
+  Args 0..5 are also stored in the current editor (rot_enc_user_interface)
   Arg 0: Hue
   Arg 1: Saturation
   Arg 2: Value (Brightness)
   Arg 3: Position
   Arg 4: Width
   Arg 5: Color Temperature (0=1000 Kelvin, max=12000 Kelvin)
+  Starting from here, args are not in current editor (rot_enc_user_interface)
   Arg 6: Mode (0:HSV or 1:Kelvin + V)
   Arg 7: Not required, but used as check-sum during flash storage
 */
@@ -1056,7 +1060,7 @@ void rel_draw_width_selector(rel_t *rel)
 void rel_draw_kelvin_selector(rel_t *rel)
 {
   reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
-  led_draw_kelvin_selector(rel->slot, ui->value, ui->max, 40);
+  led_draw_kelvin_selector(rel->slot, ui->value, ui->max, 16);
   led_out(rel->slot);
 }
 
@@ -1070,7 +1074,7 @@ rel_t rot_enc_led[2];
   ui: 0 (HSV), 1 (Kelvin) or 2 (position & width)
 */
 static uint8_t rot_color[] = { 0, 1, 2, 255};
-static uint8_t rot_kelvin[] = { 2, 5, 255};
+static uint8_t rot_kelvin[] = { 5, 2, 255};
 static uint8_t rot_geometry[] = { 3, 4, 255};
 
 void rel_init(rel_t *rel, int slot, int ui)
@@ -1112,18 +1116,23 @@ void led_update_light(void)
   led_clear_light();
   for( i = 0; i < LIGHT_SOURCES_CNT; i++ )
   {
-    hsv_to_rgb(
-      /* h */ ((unsigned)light_sources[i][0]*255)/(unsigned)rot_enc_user_interface[0].max, 
-      /* s */ ((unsigned)light_sources[i][1]*255)/(unsigned)rot_enc_user_interface[1].max, 
-      /* v */ ((unsigned)light_sources[i][2]*255)/(unsigned)rot_enc_user_interface[2].max, 
-      &r, &g, &b);
-
-    
-    //led_add_light_source(
-    //  /* w */ light_sources[i][4], 
-    //  /* p */ light_sources[i][3], 
-    //  r, g, b);
-
+    if ( light_sources[i][6] == 0 )
+    {  
+      /* mode 0: HSV */
+      hsv_to_rgb(
+	/* h */ ((unsigned)light_sources[i][0]*255)/(unsigned)rot_enc_user_interface[0].max, 
+	/* s */ ((unsigned)light_sources[i][1]*255)/(unsigned)rot_enc_user_interface[1].max, 
+	/* v */ ((unsigned)light_sources[i][2]*255)/(unsigned)rot_enc_user_interface[2].max, 
+	&r, &g, &b);
+    }
+    else
+    {
+      /* mode 1: Kelvin */
+	kelvin_to_rgb(
+	/* kelvin */ ((unsigned)light_sources[i][5]*255)/(unsigned)rot_enc_user_interface[5].max, 
+	/* v */ ((unsigned)light_sources[i][2]*255)/(unsigned)rot_enc_user_interface[2].max, 
+	  &r, &g, &b);
+    }
     
     led_add_light_source(
       /* w */ ((unsigned)light_sources[i][4]*255)/(unsigned)rot_enc_user_interface[4].max, 
@@ -1139,7 +1148,11 @@ void led_update_light(void)
 void store_editor_to_light_source(void)
 {
   int i;
-  for ( i = 0; i < ARGS_PER_LIGHT; i++ )
+  //for ( i = 0; i < ARGS_PER_LIGHT; i++ )
+  
+  /* copy only the HSV, Kelvin, Position and Width out of all arguments */
+  
+  for ( i = 0; i < 6; i++ )
   {
     light_sources[current_light_editor][i] = rot_enc_user_interface[i].value;
   }
@@ -1148,7 +1161,7 @@ void store_editor_to_light_source(void)
 void copy_light_source_to_editor(void)
 {
   int i;
-  for ( i = 0; i < ARGS_PER_LIGHT; i++ )
+  for ( i = 0; i < 6; i++ )
   {
     rot_enc_user_interface[i].value = light_sources[current_light_editor][i];
   }
@@ -1172,15 +1185,33 @@ void rel_read_and_update_led(rel_t *rel)
   {
     if ( rel->ui_list == rot_color )
     {
+      /* indicate purple to the user for Kelvin change */
+      led_draw_all(0, 80, 0, 80);
+      led_out(rel->slot);
+      delay_micro_seconds(200000);
+      
+      /* update light editor user inter fache */
       light_sources[current_light_editor][6] = 1; /* Kelvin */
       rel_init(rel, rel->slot, 1);		/* change to kelvin */
       rel_set_state(rel, 0);  // this will assign the new state and also set the led ring for the rotary encoder
+            
+      /* update light itself */
+      led_update_light();
     }
     else if ( rel->ui_list == rot_kelvin )
     {
+      /* indicate green to the user for HSV change */
+      led_draw_all(0, 0, 127, 0);
+      led_out(rel->slot);
+      delay_micro_seconds(200000);
+      
+      /* update light editor user inter fache */
       light_sources[current_light_editor][6] = 0; /* HSV */
       rel_init(rel, rel->slot, 0);		/* change to hsv color */
       rel_set_state(rel, 0);  // this will assign the new state and also set the led ring for the rotary encoder
+      
+      /* update light itself */
+      led_update_light();
     }
     else
     {
@@ -1226,6 +1257,7 @@ void change_light(void)
   
   copy_light_source_to_editor();
 
+  rel_init(rot_enc_led+0, 0, light_sources[current_light_editor][6]);	/* restore HSV/Kelvin mode */
   rel_set_state(rot_enc_led+0, 0);
   rel_set_state(rot_enc_led+1, 0);
   
@@ -1386,29 +1418,30 @@ int __attribute__ ((noinline)) main(void)
     
 
     
-    usart_write_string(&usart, " re value=");    
+    
+    usart_write_string(&usart, " edit light source=");    
+    usart_write_u16(&usart, current_light_editor);
+
+    if ( light_sources[current_light_editor][6] == 0 )
+    {
+      usart_write_string(&usart, " HSV Mode");    
+    }
+    else
+    {
+      usart_write_string(&usart, " Kelvin Mode");    
+    }
+    
+    usart_write_string(&usart, " re0 value=");    
     usart_write_string(&usart, u8toa(rotary_encoder[0].value ,3));    
 
-    usart_write_string(&usart, " re max=");    
+    usart_write_string(&usart, "/");    
     usart_write_string(&usart, u8toa(rotary_encoder[0].max ,3));    
 
-    usart_write_string(&usart, " re value=");    
+    usart_write_string(&usart, " re1 value=");    
     usart_write_string(&usart, u8toa(rotary_encoder[1].value ,3));    
 
-    usart_write_string(&usart, " re max=");    
+    usart_write_string(&usart, "/");    
     usart_write_string(&usart, u8toa(rotary_encoder[1].max ,3));    
-
-    usart_write_string(&usart, " middle=");    
-    usart_write_string(&usart, u8toa(bp_get_event(&bp_middle_button) ,1));    
-
-    usart_write_string(&usart, " led[0]=");    
-    usart_write_string(&usart, u8toa(led_light_ring[0],3));    
-
-    usart_write_string(&usart, " led[1]=");    
-    usart_write_string(&usart, u8toa(led_light_ring[1],3));    
-    
-    usart_write_string(&usart, " led[2]=");    
-    usart_write_string(&usart, u8toa(led_light_ring[2],3));    
 
     /*
     usart_write_string(&usart, " USAT(270, 9)=");    
@@ -1420,7 +1453,7 @@ int __attribute__ ((noinline)) main(void)
     usart_write_string(&usart, "\n"); 
     
 
-    led_update_light();
+    //led_update_light();
     //led_add_light_source(4, 0, 255, 255, 255);
 
   }
