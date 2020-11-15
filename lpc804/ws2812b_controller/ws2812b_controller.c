@@ -17,6 +17,7 @@
 
 #include <stddef.h>
 #include <LPC8xx.h>
+#include <core_cmInstr.h>
 #include <syscon.h>
 #include <iocon.h>
 #include <gpio.h>
@@ -29,18 +30,30 @@
 
 /*=======================================================================*/
 /* Configuration */
-#define SYS_TICK_PERIOD_IN_MS 100
+#define SYS_TICK_PERIOD_IN_MS 20
+
+#define LED_CNT 60
+#define LED_LIGHT_WS2812B_OUT_PIN 14
 
 
 #define ROT_ENC_0_DIR_PIN 25
 #define ROT_ENC_0_CNT_PIN 26
 /* value of the direction bit for clock wise rotation */
 #define ROT_ENC_0_CW_DIR 0
+#define ROT_ENC_0_BUTTON 11
+#define ROT_ENC_0_WS2812B_OUT_PIN 10
 
 #define ROT_ENC_1_DIR_PIN 23
 #define ROT_ENC_1_CNT_PIN 24
 /* value of the direction bit for clock wise rotation */
 #define ROT_ENC_1_CW_DIR 0
+#define ROT_ENC_1_BUTTON 1
+#define ROT_ENC_1_WS2812B_OUT_PIN 15
+
+#define MODE_BUTTON_PIN 19
+
+
+
 
 /* number of LEDs in Ring 0 */
 #define LED_R0_CNT 12
@@ -53,6 +66,8 @@
 /* debounce delay after button release, can be zero (which are actually SYS_TICK_PERIOD_IN_MS milliseconds */
 #define BP_CNT_DEBOUNCE_DELAY (50/SYS_TICK_PERIOD_IN_MS)
 
+/* Nmber of lights sources */
+#define LIGHT_SOURCES_CNT 3
 
 /*=======================================================================*/
 /* definitions */
@@ -348,6 +363,7 @@ void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t
 /*=======================================================================*/
 
 uint8_t led_rot_enc_ring[2][LED_R0_CNT*3];
+uint8_t led_light_ring[LED_CNT*3];
 
 void led_clear(int slot)
 {
@@ -366,23 +382,30 @@ void led_set_rgb(int slot, unsigned pos, uint8_t r, uint8_t g, uint8_t b)
   led_rot_enc_ring[slot][pos*3+2] = b;
 }
 
-void led_add_rgb(int slot, unsigned pos, uint8_t r, uint8_t g, uint8_t b)
-{
-  pos %= LED_R0_CNT;		
-  led_rot_enc_ring[slot][pos*3] += g;
-  led_rot_enc_ring[slot][pos*3+1] += r;
-  led_rot_enc_ring[slot][pos*3+2] += b;
-}
 
 void led_out(int slot)
 {
   if ( slot == 0 )
   {
-    ws2812_spi_out(10, led_rot_enc_ring[0], LED_R0_CNT*3);	// Output via PIO0_10
+    ws2812_spi_out(ROT_ENC_0_WS2812B_OUT_PIN, led_rot_enc_ring[0], LED_R0_CNT*3);	// Output via PIO0_10
   }
   else
   {
-    ws2812_spi_out(15, led_rot_enc_ring[1], LED_R0_CNT*3);	// Output via PIO0_15
+    ws2812_spi_out(ROT_ENC_1_WS2812B_OUT_PIN, led_rot_enc_ring[1], LED_R0_CNT*3);	// Output via PIO0_15
+  }
+}
+
+
+
+
+void led_draw_all(int slot, uint8_t r, uint8_t g, uint8_t b)
+{
+  int pos;
+  for( pos = 0; pos < LED_R0_CNT; pos++ )
+  {
+    led_rot_enc_ring[slot][pos*3] = g;
+    led_rot_enc_ring[slot][pos*3+1] = r;
+    led_rot_enc_ring[slot][pos*3+2] = b;
   }
 }
 
@@ -459,6 +482,7 @@ void led_draw_s_selector(int slot, unsigned pos, unsigned max, uint8_t h, uint8_
     hsv_to_rgb(h, (unsigned)s + (i * (unsigned)255)/(unsigned)LED_R0_CNT, v, &r, &g, &b);
     
     j = LED_R0_CNT - i - 1;
+    //j = i;
     j += LED_R0_TOP;
     j %= LED_R0_CNT;
     led_set_rgb(slot, j, r, g, b);
@@ -510,7 +534,7 @@ uint8_t trapezoid_fn(uint8_t x, uint8_t w, uint8_t r)
 void led_draw_position_selector(int slot, unsigned pos, unsigned max, uint8_t w, uint8_t v)
 {
   uint8_t p = (unsigned)pos * (unsigned)256 / ((unsigned)(max+1));
-  uint8_t t;
+  uint8_t t, t2;
   //uint8_t r, g, b;
   unsigned i, j;
   for( i = 0; i < LED_R0_CNT; i++ )
@@ -520,14 +544,18 @@ void led_draw_position_selector(int slot, unsigned pos, unsigned max, uint8_t w,
     t = trapezoid_fn( p + (i * (unsigned)256)/(unsigned)LED_R0_CNT, w==0?1:w, 255/LED_R0_CNT);
     
     t = ((unsigned)t*(unsigned)v)/(unsigned)256;
+
+    t2 = trapezoid_fn( p + (i * (unsigned)256)/(unsigned)LED_R0_CNT, 3, 255/LED_R0_CNT);
+
+    t2 = ((unsigned)t2*(unsigned)v)/(unsigned)256;
     
     j = LED_R0_CNT - i - 1;
     j += LED_R0_TOP;
     j %= LED_R0_CNT;
     if ( w == 0 )
-      led_set_rgb(slot, j, 0, 0, t);
+      led_set_rgb(slot, j, 0, 0, t2);
     else
-      led_set_rgb(slot, j, t, t, t);
+      led_set_rgb(slot, j, t-t2, t-t2, t);
   }
   
   //led_set_rgb(slot, 0, 40, 0, 0);
@@ -542,21 +570,28 @@ void led_draw_position_selector(int slot, unsigned pos, unsigned max, uint8_t w,
 void led_draw_width_selector(int slot, unsigned pos, unsigned max, uint8_t p, uint8_t v)
 {
   uint8_t w = (unsigned)pos * (unsigned)255 / ((unsigned)(max));
-  uint8_t t;
+  uint8_t t, t2;
   //uint8_t r, g, b;
   unsigned i, j;
+  
+  if ( w == 0 )
+    v /= 2;
   for( i = 0; i < LED_R0_CNT; i++ )
   {
     //hsv_to_rgb(h, (unsigned)s + (i * (unsigned)255)/(unsigned)LED_R0_CNT, v, &r, &g, &b);
     
-    t = trapezoid_fn( p + (i * (unsigned)256)/(unsigned)LED_R0_CNT, w, 255/LED_R0_CNT);
+    t = trapezoid_fn( p + (i * (unsigned)256)/(unsigned)LED_R0_CNT, w==0?1:w, 255/LED_R0_CNT);
     
     t = ((unsigned)t*(unsigned)v)/(unsigned)256;
+
+    t2 = trapezoid_fn( p + (i * (unsigned)256)/(unsigned)LED_R0_CNT, 1, 255/LED_R0_CNT);
+
+    t2 = ((unsigned)t2*(unsigned)v)/(unsigned)256;
     
     j = LED_R0_CNT - i - 1;
     j += LED_R0_TOP;
     j %= LED_R0_CNT;
-    led_set_rgb(slot, j, t, t, t);
+    led_set_rgb(slot, j, t2, t2, t);
   }
   
   //led_set_rgb(0, 0, 40, 0, 0);
@@ -566,6 +601,47 @@ void led_draw_width_selector(int slot, unsigned pos, unsigned max, uint8_t p, ui
   //led_set_rgb(0, (LED_R0_TOP)%LED_R0_CNT0, 40, 0, 0);
   //led_set_rgb(0, (LED_R0_TOP+LED_R0_CNT-2)%LED_R0_CNT, 0, 0, 0);
 }
+
+
+void led_clear_light(void)
+{
+  int i;
+  for( i = 0; i < LED_CNT*3; i++ )
+    led_light_ring[i] = 0;
+}
+
+void led_add_light_rgb(unsigned pos, uint8_t r, uint8_t g, uint8_t b) 
+{
+  unsigned tmp;
+  
+  pos %= LED_CNT;
+  
+  tmp = (unsigned)led_light_ring[pos*3] + (unsigned)g;
+  led_light_ring[pos*3] = tmp > 255 ? 255 : tmp;
+
+  tmp = (unsigned)led_light_ring[pos*3+1] + (unsigned)r;
+  led_light_ring[pos*3+1] = tmp > 255 ? 255 : tmp;
+
+  tmp = (unsigned)led_light_ring[pos*3+2] + (unsigned)b;
+  led_light_ring[pos*3+2] = tmp > 255 ? 255 : tmp;
+  
+}
+
+
+void led_add_light_source(uint8_t w, uint8_t p, uint8_t r, uint8_t g, uint8_t b)
+{
+  unsigned i, j;
+  uint8_t t;
+  for( i = 0; i < LED_CNT; i++ )
+  {
+    t = trapezoid_fn( p + (i * (unsigned)256)/(unsigned)LED_CNT, w, 255/LED_CNT);    
+    j = LED_CNT - i - 1;
+    //j += 0;
+    j %= LED_CNT;
+    led_add_light_rgb(j, (r*(unsigned)t)>>8, (g*(unsigned)t)>>8, (b*(unsigned)t)>>8);  
+  }
+}
+
 
 
 /*=======================================================================*/
@@ -663,6 +739,10 @@ int bp_get_event(bp_t *bp)
 /*=======================================================================*/
 /* rotary encoder / led state machine */
 
+/* light sources specification */
+#define ARGS_PER_LIGHT 5
+uint8_t light_sources[LIGHT_SOURCES_CNT][ARGS_PER_LIGHT];
+uint8_t current_light_editor = 0;
 
 typedef struct reui_struct reui_t;
 typedef struct rel_struct rel_t;
@@ -698,14 +778,25 @@ struct rel_struct
   //uint8_t max[REL_STATES];		// a constant, but kept for easier calculation
 };
 
-reui_t rot_enc_user_interface[] = 
+reui_t rot_enc_user_interface[ARGS_PER_LIGHT] = 
 {
   { rel_draw_h_selector, /* wrap=*/ 1,  /*max=*/ LED_R0_CNT*5, /* value=*/ 0},
   { rel_draw_s_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0},
   { rel_draw_v_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0},
-  { rel_draw_position_selector, /* wrap=*/ 1,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0},
-  { rel_draw_width_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0}
+  { rel_draw_position_selector, /* wrap=*/ 1,  /*max=*/ LED_R0_CNT*5, /* value=*/ 0},
+  { rel_draw_width_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*5, /* value=*/ 0}
 };
+
+void init_light_sources(void)
+{
+  int i;
+  for( i = 0; i < LIGHT_SOURCES_CNT; i++ )
+  {
+    light_sources[i][1] = rot_enc_user_interface[1].max/2;	/* saturation */
+    light_sources[i][4] = rot_enc_user_interface[4].max/8;	/* initial width */
+  }
+}
+
 
 #define UI_UNIFIED_VALUE(x) \
   ((uint8_t)(((unsigned)rot_enc_user_interface[x].value*(unsigned)255)/(unsigned)rot_enc_user_interface[x].max))
@@ -794,6 +885,58 @@ void rel_set_state(rel_t *rel, int state)
   rel_show_led(rel);
 }
 
+/* update target light source */
+void led_update_light(void)
+{
+  int i;
+  uint8_t r, g, b;
+  
+  led_clear_light();
+  for( i = 0; i < LIGHT_SOURCES_CNT; i++ )
+  {
+    hsv_to_rgb(
+      /* h */ ((unsigned)light_sources[i][0]*255)/(unsigned)rot_enc_user_interface[0].max, 
+      /* s */ ((unsigned)light_sources[i][1]*255)/(unsigned)rot_enc_user_interface[1].max, 
+      /* v */ ((unsigned)light_sources[i][2]*255)/(unsigned)rot_enc_user_interface[2].max, 
+      &r, &g, &b);
+
+    
+    //led_add_light_source(
+    //  /* w */ light_sources[i][4], 
+    //  /* p */ light_sources[i][3], 
+    //  r, g, b);
+
+    
+    led_add_light_source(
+      /* w */ ((unsigned)light_sources[i][4]*255)/(unsigned)rot_enc_user_interface[4].max, 
+      /* p */ ((unsigned)light_sources[i][3]*255)/(unsigned)rot_enc_user_interface[3].max, 
+      r, g, b);
+    }  
+  
+  ws2812_spi_out(LED_LIGHT_WS2812B_OUT_PIN, led_light_ring, LED_CNT*3);	
+}
+
+
+/* copy values from light editor to light specification table */
+void store_editor_to_light_source(void)
+{
+  int i;
+  for ( i = 0; i < ARGS_PER_LIGHT; i++ )
+  {
+    light_sources[current_light_editor][i] = rot_enc_user_interface[i].value;
+  }
+}
+
+void copy_light_source_to_editor(void)
+{
+  int i;
+  for ( i = 0; i < ARGS_PER_LIGHT; i++ )
+  {
+    rot_enc_user_interface[i].value = light_sources[current_light_editor][i];
+  }
+}
+
+
 /* copy the value from the rotary encoder detection to the rel object and show the result on the LED ring */
 void rel_read_and_update_led(rel_t *rel)
 {
@@ -815,11 +958,49 @@ void rel_read_and_update_led(rel_t *rel)
     {
       /* update LED ring only if required */
       ui->value = v;
+      /* update light editor */
       rel_show_led(rel);
+      /* copy current editor value to the light source array */
+      store_editor_to_light_source();
+      /* update the light based on the light source array */
+      led_update_light();
     }
   }
 }
 
+
+/*
+  switch editor to a different light source
+*/
+void change_light(void)
+{
+  store_editor_to_light_source();
+  current_light_editor++;
+  if ( current_light_editor >= LIGHT_SOURCES_CNT )
+    current_light_editor = 0;
+
+  led_draw_all(0, 40, 40, 40);
+  led_out(0);
+  led_draw_all(1, 40, 40, 40);
+  led_out(1);
+
+  delay_micro_seconds(10000);
+  
+  copy_light_source_to_editor();
+
+  rel_set_state(rot_enc_led+0, 0);
+  rel_set_state(rot_enc_led+1, 0);
+  
+}
+
+void handle_mode_button(void)
+{
+  int event = bp_get_event(&bp_middle_button);
+  if ( event == BP_EVENT_SHORT_PRESS )
+  {
+    change_light();
+  }
+}
 
 /*=======================================================================*/
 static const unsigned char u8toa_tab[3]  = { 100, 10, 1 } ;
@@ -915,9 +1096,9 @@ int __attribute__ ((noinline)) main(void)
   ws2812_spi_init();
   usart0_init(&usart, 5, /* tx */ 4, /* rx */ 0, usart_rx_buf, 32);  
 
-  bp_init(&bp_middle_button, 19);
-  bp_init(bp_rot_enc+0, 11);
-  bp_init(bp_rot_enc+1, 1);
+  bp_init(&bp_middle_button, MODE_BUTTON_PIN);
+  bp_init(bp_rot_enc+0, ROT_ENC_0_BUTTON);
+  bp_init(bp_rot_enc+1, ROT_ENC_1_BUTTON);
 
   rot_enc_setup(rotary_encoder+0, 0, 0, 255, 0);
   rot_enc_setup(rotary_encoder+1, 0, 0, 255, 0);
@@ -925,12 +1106,19 @@ int __attribute__ ((noinline)) main(void)
   rel_init(rot_enc_led+0, 0);
   rel_init(rot_enc_led+1, 1);
 
+  init_light_sources();
+  copy_light_source_to_editor();
+
   rel_set_state(rot_enc_led+0, 0);
   rel_set_state(rot_enc_led+1, 0);
+
 
   /* set systick and start systick interrupt (after all subsystems are ready */
   SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
   
+
+  led_clear_light();
+  ws2812_spi_out(LED_LIGHT_WS2812B_OUT_PIN, led_light_ring, LED_CNT*3);	
 
 
   for(;;)
@@ -954,13 +1142,12 @@ int __attribute__ ((noinline)) main(void)
       
       rel_read_and_update_led(rot_enc_led+0);
       rel_read_and_update_led(rot_enc_led+1);
+      handle_mode_button();
       
       delay_micro_seconds(1000000/20);
     }
     
 
-    usart_write_string(&usart, "rel state=");    
-    usart_write_string(&usart, u8toa(rot_enc_led[1].state,1));    
     
     usart_write_string(&usart, " re value=");    
     usart_write_string(&usart, u8toa(rotary_encoder[0].value ,3));    
@@ -973,10 +1160,32 @@ int __attribute__ ((noinline)) main(void)
 
     usart_write_string(&usart, " re max=");    
     usart_write_string(&usart, u8toa(rotary_encoder[1].max ,3));    
+
+    usart_write_string(&usart, " middle=");    
+    usart_write_string(&usart, u8toa(bp_get_event(&bp_middle_button) ,1));    
+
+    usart_write_string(&usart, " led[0]=");    
+    usart_write_string(&usart, u8toa(led_light_ring[0],3));    
+
+    usart_write_string(&usart, " led[1]=");    
+    usart_write_string(&usart, u8toa(led_light_ring[1],3));    
     
+    usart_write_string(&usart, " led[2]=");    
+    usart_write_string(&usart, u8toa(led_light_ring[2],3));    
+
+    /*
+    usart_write_string(&usart, " USAT(270, 9)=");    
+    usart_write_string(&usart, u8toa(__USAT(270, 9) ,3));    
+    usart_write_string(&usart, " USAT(270, 8)=");    
+    usart_write_string(&usart, u8toa(__USAT(270, 8) ,3));    
+    */
+
     usart_write_string(&usart, "\n"); 
     
-    
+
+    led_update_light();
+    //led_add_light_source(4, 0, 255, 255, 255);
+
   }
 }
 
