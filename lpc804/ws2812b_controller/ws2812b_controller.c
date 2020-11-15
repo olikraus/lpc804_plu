@@ -12,7 +12,22 @@
   PIO0_..
   10			data out led ring for rotaray encoder 0
   15			data out led ring for rotaray encoder 1
-
+  
+  
+  Left Rotary Encode Button:
+    Long Press: Switch between HSV and Kelvin Mode
+    Short Press:
+      HSV Mode: Cycle between H, S and V
+      Kelvin Mode: Switch between Kelvin and V
+    
+  Right Rotary Encode Button:
+    Short Press:
+      Switch between Position and Width
+  
+  Middle Button
+    Short Press:
+      Cycle between light sources
+      
 */
 
 #include <stddef.h>
