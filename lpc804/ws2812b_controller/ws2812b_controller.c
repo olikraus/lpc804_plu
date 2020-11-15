@@ -359,6 +359,167 @@ void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t
     }
 }
 
+struct kelvin_rgb_struct
+{
+  /*uint16_t kelvin;*/
+  uint8_t r, g, b;
+};
+typedef struct kelvin_rgb_struct kelvin_rgb_t;
+
+/* table taken from https://andi-siess.de/rgb-to-color-temperature/ */
+/* see also http://www.vendian.org/mncharity/dir3/blackbody/ */
+static const kelvin_rgb_t kelvin_to_rgb_map[] = 
+{
+    {/*1000,*/ 255, 56, 0},
+    {/*1100,*/ 255, 71, 0},
+    {/*1200,*/ 255, 83, 0},
+    {/*1300,*/ 255, 93, 0},
+    {/*1400,*/ 255, 101, 0},
+    {/*1500,*/ 255, 109, 0},
+    {/*1600,*/ 255, 115, 0},
+    {/*1700,*/ 255, 121, 0},
+    {/*1800,*/ 255, 126, 0},
+    {/*1900,*/ 255, 131, 0},
+    {/*2000,*/ 255, 138, 18},
+    {/*2100,*/ 255, 142, 33},
+    {/*2200,*/ 255, 147, 44},
+    {/*2300,*/ 255, 152, 54},
+    {/*2400,*/ 255, 157, 63},
+    {/*2500,*/ 255, 161, 72},
+    {/*2600,*/ 255, 165, 79},
+    {/*2700,*/ 255, 169, 87},
+    {/*2800,*/ 255, 173, 94},
+    {/*2900,*/ 255, 177, 101},
+    {/*3000,*/ 255, 180, 107},
+    {/*3100,*/ 255, 184, 114},
+    {/*3200,*/ 255, 187, 120},
+    {/*3300,*/ 255, 190, 126},
+    {/*3400,*/ 255, 193, 132},
+    {/*3500,*/ 255, 196, 137},
+    {/*3600,*/ 255, 199, 143},
+    {/*3700,*/ 255, 201, 148},
+    {/*3800,*/ 255, 204, 153},
+    {/*3900,*/ 255, 206, 159},
+    {/*4000,*/ 255, 209, 163},
+    {/*4100,*/ 255, 211, 168},
+    {/*4200,*/ 255, 213, 173},
+    {/*4300,*/ 255, 215, 177},
+    {/*4400,*/ 255, 217, 182},
+    {/*4500,*/ 255, 219, 186},
+    {/*4600,*/ 255, 221, 190},
+    {/*4700,*/ 255, 223, 194},
+    {/*4800,*/ 255, 225, 198},
+    {/*4900,*/ 255, 227, 202},
+    {/*5000,*/ 255, 228, 206},
+    {/*5100,*/ 255, 230, 210},
+    {/*5200,*/ 255, 232, 213},
+    {/*5300,*/ 255, 233, 217},
+    {/*5400,*/ 255, 235, 220},
+    {/*5500,*/ 255, 236, 224},
+    {/*5600,*/ 255, 238, 227},
+    {/*5700,*/ 255, 239, 230},
+    {/*5800,*/ 255, 240, 233},
+    {/*5900,*/ 255, 242, 236},
+    {/*6000,*/ 255, 243, 239},
+    {/*6100,*/ 255, 244, 242},
+    {/*6200,*/ 255, 245, 245},
+    {/*6300,*/ 255, 246, 247},
+    {/*6400,*/ 255, 248, 251},
+    {/*6500,*/ 255, 249, 253},
+    {/*6600,*/ 254, 249, 255},
+    {/*6700,*/ 252, 247, 255},
+    {/*6800,*/ 249, 246, 255},
+    {/*6900,*/ 247, 245, 255},
+    {/*7000,*/ 245, 243, 255},
+    {/*7100,*/ 243, 242, 255},
+    {/*7200,*/ 240, 241, 255},
+    {/*7300,*/ 239, 240, 255},
+    {/*7400,*/ 237, 239, 255},
+    {/*7500,*/ 235, 238, 255},
+    {/*7600,*/ 233, 237, 255},
+    {/*7700,*/ 231, 236, 255},
+    {/*7800,*/ 230, 235, 255},
+    {/*7900,*/ 228, 234, 255},
+    {/*8000,*/ 227, 233, 255},
+    {/*8100,*/ 225, 232, 255},
+    {/*8200,*/ 224, 231, 255},
+    {/*8300,*/ 222, 230, 255},
+    {/*8400,*/ 221, 230, 255},
+    {/*8500,*/ 220, 229, 255},
+    {/*8600,*/ 218, 229, 255},
+    {/*8700,*/ 217, 227, 255},
+    {/*8800,*/ 216, 227, 255},
+    {/*8900,*/ 215, 226, 255},
+    {/*9000,*/ 214, 225, 255},
+    {/*9100,*/ 212, 225, 255},
+    {/*9200,*/ 211, 224, 255},
+    {/*9300,*/ 210, 223, 255},
+    {/*9400,*/ 209, 223, 255},
+    {/*9500,*/ 208, 222, 255},
+    {/*9600,*/ 207, 221, 255},
+    {/*9700,*/ 207, 221, 255},
+    {/*9800,*/ 206, 220, 255},
+    {/*9900,*/ 205, 220, 255},
+    {/*10000,*/ 207, 218, 255},
+    {/*10100,*/ 207, 218, 255},
+    {/*10200,*/ 206, 217, 255},
+    {/*10300,*/ 205, 217, 255},
+    {/*10400,*/ 204, 216, 255},
+    {/*10500,*/ 204, 216, 255},
+    {/*10600,*/ 203, 215, 255},
+    {/*10700,*/ 202, 215, 255},
+    {/*10800,*/ 202, 214, 255},
+    {/*10900,*/ 201, 214, 255},
+    {/*11000,*/ 200, 213, 255},
+    {/*11100,*/ 200, 213, 255},
+    {/*11200,*/ 199, 212, 255},
+    {/*11300,*/ 198, 212, 255},
+    {/*11400,*/ 198, 212, 255},
+    {/*11500,*/ 197, 211, 255},
+    {/*11600,*/ 197, 211, 255},
+    {/*11700,*/ 197, 210, 255},
+    {/*11800,*/ 196, 210, 255},
+    {/*11900,*/ 195, 210, 255},
+    {/*12000,*/ 195, 209, 255}  
+};
+
+void kelvin_to_rgb(uint8_t kelvin, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+  unsigned cnt = sizeof(kelvin_to_rgb_map)/sizeof(kelvin_rgb_t);
+  unsigned pos = ((unsigned)kelvin * (unsigned)cnt);
+  unsigned frac = pos;
+  int t1, t2;
+  pos >>=8;
+  frac &= 255;
+  
+  /* check for more than 12000 Kelvin */
+  
+  if ( pos >= cnt-1 )
+  {
+    *r = ((unsigned)kelvin_to_rgb_map[cnt-1].r*(unsigned)v)>>8;
+    *g = ((unsigned)kelvin_to_rgb_map[cnt-1].g*(unsigned)v)>>8;
+    *b = ((unsigned)kelvin_to_rgb_map[cnt-1].b*(unsigned)v)>>8;
+    return;
+  }
+  
+  /* interpolate between two entries of the Kelvin table */
+  
+  t1 = kelvin_to_rgb_map[pos].r;
+  t2 = kelvin_to_rgb_map[pos+1].r;
+  t1 = t1 + (((t2-t1)*(int)frac)>>8);
+  *r = (t1*v)>>8;
+  
+  t1 = kelvin_to_rgb_map[pos].g;
+  t2 = kelvin_to_rgb_map[pos+1].g;
+  t1 = t1 + (((t2-t1)*(int)frac)>>8);
+  *g = (t1*v)>>8;
+
+  t1 = kelvin_to_rgb_map[pos].b;
+  t2 = kelvin_to_rgb_map[pos+1].b;
+  t1 = t1 + (((t2-t1)*(int)frac)>>8);
+  *b = (t1*v)>>8;
+  
+}
 
 /*=======================================================================*/
 
@@ -480,6 +641,34 @@ void led_draw_s_selector(int slot, unsigned pos, unsigned max, uint8_t h, uint8_
   for( i = 0; i < LED_R0_CNT; i++ )
   {
     hsv_to_rgb(h, (unsigned)s + (i * (unsigned)255)/(unsigned)LED_R0_CNT, v, &r, &g, &b);
+    
+    j = LED_R0_CNT - i - 1;
+    //j = i;
+    j += LED_R0_TOP;
+    j %= LED_R0_CNT;
+    led_set_rgb(slot, j, r, g, b);
+  }
+  
+  //led_set_rgb(slot, (LED_R0_TOP)%LED_R0_CNT, 0, 0, 0);
+  //led_set_rgb(slot, (LED_R0_TOP+LED_R0_CNT-2)%LED_R0_CNT, 0, 0, 0);
+}
+
+
+/*
+  draw kelvin selector into given slot
+  pos: no wrap around, values for pos are 0..max
+  max: the highest value of pos
+*/
+void led_draw_kelvin_selector(int slot, unsigned pos, unsigned max, uint8_t v)
+{
+  uint8_t kelvin = (unsigned)pos * (unsigned)255 / ((unsigned)max);
+  uint8_t r, g, b;
+  unsigned i, j;
+  for( i = 0; i < LED_R0_CNT; i++ )
+  {
+    kelvin_to_rgb((unsigned)kelvin + (i * (unsigned)255)/(unsigned)LED_R0_CNT, v, &r, &g, &b);
+    
+    //hsv_to_rgb(h, (unsigned)s + (i * (unsigned)255)/(unsigned)LED_R0_CNT, v, &r, &g, &b);
     
     j = LED_R0_CNT - i - 1;
     //j = i;
@@ -740,8 +929,22 @@ int bp_get_event(bp_t *bp)
 /* rotary encoder / led state machine */
 
 /* light sources specification */
-#define ARGS_PER_LIGHT 5
+#define ARGS_PER_LIGHT 8
+/*
+  Arg 0: Hue
+  Arg 1: Saturation
+  Arg 2: Value (Brightness)
+  Arg 3: Position
+  Arg 4: Width
+  Arg 5: Color Temperature (0=1000 Kelvin, max=12000 Kelvin)
+  Arg 6: Mode (0:HSV or 1:Kelvin + V)
+  Arg 7: Not required, but used as check-sum during flash storage
+*/
+
 uint8_t light_sources[LIGHT_SOURCES_CNT][ARGS_PER_LIGHT];
+
+/* global variable, which defines the light source, which is currently under user control */
+/* values are 0..LIGHT_SOURCES_CNT-1 */
 uint8_t current_light_editor = 0;
 
 typedef struct reui_struct reui_t;
@@ -752,6 +955,7 @@ void rel_draw_s_selector(rel_t *rel);
 void rel_draw_v_selector(rel_t *rel);
 void rel_draw_position_selector(rel_t *rel);
 void rel_draw_width_selector(rel_t *rel);
+void rel_draw_kelvin_selector(rel_t *rel);
 
 /* rotary encoder user interface definitions */
 struct reui_struct
@@ -780,11 +984,12 @@ struct rel_struct
 
 reui_t rot_enc_user_interface[ARGS_PER_LIGHT] = 
 {
-  { rel_draw_h_selector, /* wrap=*/ 1,  /*max=*/ LED_R0_CNT*5, /* value=*/ 0},
+  { rel_draw_h_selector, /* wrap=*/ 1,  /*max=*/ LED_R0_CNT*7, /* value=*/ 0},
   { rel_draw_s_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0},
   { rel_draw_v_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0},
   { rel_draw_position_selector, /* wrap=*/ 1,  /*max=*/ LED_R0_CNT*5, /* value=*/ 0},
-  { rel_draw_width_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*5, /* value=*/ 0}
+  { rel_draw_width_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*5, /* value=*/ 0},
+  { rel_draw_kelvin_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*7, /* value=*/ 0}
 };
 
 void init_light_sources(void)
@@ -792,8 +997,14 @@ void init_light_sources(void)
   int i;
   for( i = 0; i < LIGHT_SOURCES_CNT; i++ )
   {
+    light_sources[i][0] = 0;
     light_sources[i][1] = rot_enc_user_interface[1].max/2;	/* saturation */
+    light_sources[i][2] = 0;
+    light_sources[i][3] = 0;	/* Position */
     light_sources[i][4] = rot_enc_user_interface[4].max/8;	/* initial width */
+    light_sources[i][5] = 0;	/* Kelvin */
+    light_sources[i][6] = 0;	/* Mode */
+    light_sources[i][7] = 0;	/* Not used */
   }
 }
 
@@ -842,31 +1053,38 @@ void rel_draw_width_selector(rel_t *rel)
   led_out(rel->slot);
 }
 
+void rel_draw_kelvin_selector(rel_t *rel)
+{
+  reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
+  led_draw_kelvin_selector(rel->slot, ui->value, ui->max, 40);
+  led_out(rel->slot);
+}
+
+
+
 
 rel_t rot_enc_led[2];
 
-void rel_init(rel_t *rel, int slot)
-{
-  //int i;
+/*
+  slot: 0 or 1
+  ui: 0 (HSV), 1 (Kelvin) or 2 (position & width)
+*/
+static uint8_t rot_color[] = { 0, 1, 2, 255};
+static uint8_t rot_kelvin[] = { 2, 5, 255};
+static uint8_t rot_geometry[] = { 3, 4, 255};
 
-  static uint8_t color[] = { 0, 1, 2, 255};
-  static uint8_t geometry[] = { 3, 4, 255};
-  
+void rel_init(rel_t *rel, int slot, int ui)
+{  
   rel->slot = slot;
-  rel->state = 0;
-  if ( slot == 0 )
-    rel->ui_list = color;
-  else
-    rel->ui_list = geometry;
-    
-  /*
-  for( i = 0; i < REL_STATES; i++ )
+  rel->state = 0; 	// not sufficient, call rel_set_state after rel_init() 
+  if ( ui == 0 )
   {
-    rel->value[i] = 0;
-    rel->max[i] = LED_R0_CNT*2;
+    rel->ui_list = rot_color;
   }
-  rel->max[0] = LED_R0_CNT*5;
-  */
+  else if ( ui == 1 )
+    rel->ui_list = rot_kelvin;
+  else
+    rel->ui_list = rot_geometry;
 }
 
 
@@ -949,6 +1167,26 @@ void rel_read_and_update_led(rel_t *rel)
     if ( rel->ui_list[state] > 30 )	// actually this should be == 255 
       state = 0;
     rel_set_state(rel, state);  // this will assign the new state and also set the led ring for the rotary encoder
+  }
+  else if ( button == BP_EVENT_LONG_PRESS )
+  {
+    if ( rel->ui_list == rot_color )
+    {
+      light_sources[current_light_editor][6] = 1; /* Kelvin */
+      rel_init(rel, rel->slot, 1);		/* change to kelvin */
+      rel_set_state(rel, 0);  // this will assign the new state and also set the led ring for the rotary encoder
+    }
+    else if ( rel->ui_list == rot_kelvin )
+    {
+      light_sources[current_light_editor][6] = 0; /* HSV */
+      rel_init(rel, rel->slot, 0);		/* change to hsv color */
+      rel_set_state(rel, 0);  // this will assign the new state and also set the led ring for the rotary encoder
+    }
+    else
+    {
+      light_sources[current_light_editor][6] = 0; /* doesn't matter, this is geometry */
+      /* do nothing, this is the geometry slot */
+    }
   }
   else
   {
@@ -1060,7 +1298,6 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
 */
 int __attribute__ ((noinline)) main(void)
 {
-  int dir0, dir1;
   int i;
 
   usart_t usart;
@@ -1103,8 +1340,8 @@ int __attribute__ ((noinline)) main(void)
   rot_enc_setup(rotary_encoder+0, 0, 0, 255, 0);
   rot_enc_setup(rotary_encoder+1, 0, 0, 255, 0);
   
-  rel_init(rot_enc_led+0, 0);
-  rel_init(rot_enc_led+1, 1);
+  rel_init(rot_enc_led+0, 0, 0);
+  rel_init(rot_enc_led+1, 1, 2);
 
   init_light_sources();
   copy_light_source_to_editor();
@@ -1187,5 +1424,6 @@ int __attribute__ ((noinline)) main(void)
     //led_add_light_source(4, 0, 255, 255, 255);
 
   }
+  kelvin_to_rgb(1,2,NULL, NULL, NULL);
 }
 
