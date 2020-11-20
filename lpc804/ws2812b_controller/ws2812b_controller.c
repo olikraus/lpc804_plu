@@ -27,6 +27,8 @@
   Middle Button
     Short Press:
       Cycle between light sources
+    Long Press:
+      Store light setup to flash ROM
       
 */
 
@@ -41,6 +43,7 @@
 #include <spi.h>
 #include <delay.h>
 #include <util.h>
+#include <flash.h>
 
 
 /*=======================================================================*/
@@ -102,6 +105,11 @@ extern void plu(void);
 
 /*=======================================================================*/
 /* global variables */
+
+usart_t usart;
+uint8_t usart_rx_buf[32];
+
+
 bp_t bp_middle_button;
 bp_t bp_rot_enc[2];
 
@@ -629,6 +637,7 @@ void led_draw_v_selector(int slot, unsigned pos, unsigned max, uint8_t h, uint8_
   for( i = 0; i < LED_R0_CNT; i++ )
   {
     vv = (unsigned)v + (i * (unsigned)255)/(unsigned)LED_R0_CNT;
+    vv/=2;
     vv = ((uint16_t)vv*(uint16_t)vv)/256;		// add a nonlinear curve to v
 
     hsv_to_rgb(h, s, vv, &r, &g, &b);
@@ -960,7 +969,8 @@ int bp_get_event(bp_t *bp)
   Arg 7: Not required, but used as check-sum during flash storage
 */
 
-uint8_t light_sources[LIGHT_SOURCES_CNT][ARGS_PER_LIGHT];
+/* the size light_sources must fit into a 64 bytes page for flashing */
+uint8_t light_sources[LIGHT_SOURCES_CNT][ARGS_PER_LIGHT] __attribute__ ((aligned (4)));
 
 /* global variable, which defines the light source, which is currently under user control */
 /* values are 0..LIGHT_SOURCES_CNT-1 */
@@ -1011,6 +1021,55 @@ reui_t rot_enc_user_interface[ARGS_PER_LIGHT] =
   { rel_draw_kelvin_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*7, /* value=*/ 0}
 };
 
+void flash_light_sources(void)
+{
+  int i, j;
+  uint8_t s;
+  for( i = 0; i < LIGHT_SOURCES_CNT; i++ )
+  {
+    s = 0;
+    for( j = 0; j < 7; j++ )
+      s += light_sources[i][j];
+    
+    /* calculate two's complement */
+    s = ~s;
+    s++;
+    light_sources[i][7] = s;
+  }
+   
+  usart_write_string(&usart, "flash light sources data\n");    
+  flash_page(0x07f00, (const uint8_t *)light_sources);
+}
+
+
+int is_flash_data_valid(void)
+{
+  int i, j;
+  const uint8_t *adr = (const uint8_t *)0x07f00;
+  uint8_t s;
+  for( i = 0; i < LIGHT_SOURCES_CNT; i++ )
+  {
+    s = 0;
+    for( j = 0; j < 8; j++ )
+      s += *(adr + i*8 + j);
+    
+    if ( s != 0 )
+      return 0;
+  }
+  return 1;
+}
+
+void read_flash_data(void)
+{
+  int i, j;
+  const uint8_t *adr = (const uint8_t *)0x07f00;
+  for( i = 0; i < LIGHT_SOURCES_CNT; i++ )
+  {
+    for( j = 0; j < 7; j++ )
+      light_sources[i][j] = *(adr + i*8 + j);    
+  }
+}
+
 void init_light_sources(void)
 {
   int i;
@@ -1025,7 +1084,19 @@ void init_light_sources(void)
     light_sources[i][6] = 0;	/* Mode */
     light_sources[i][7] = 0;	/* Not used */
   }
+  
+  /* try to get values from flash */
+  if ( is_flash_data_valid() )
+  {
+    read_flash_data();
+    usart_write_string(&usart, "flash data valid, data restored from flash\n");    
+  }
+  else
+  {
+    usart_write_string(&usart, "flash data invalid, not loaded\n");    
+  }
 }
+
 
 
 #define UI_UNIFIED_VALUE(x) \
@@ -1285,6 +1356,22 @@ void handle_mode_button(void)
   {
     change_light();
   }
+  else if ( event == BP_EVENT_LONG_PRESS )
+  {
+    /* indicaten flashing */
+    led_draw_all(0, 40, 40, 80);
+    led_out(0);
+    led_draw_all(1, 40, 40, 80);
+    led_out(1);
+
+    flash_light_sources();
+    delay_micro_seconds(200000);
+    
+    /* restore original light */
+    rel_show_led(rot_enc_led+0);
+    rel_show_led(rot_enc_led+1);
+    
+  }
 }
 
 /*=======================================================================*/
@@ -1347,8 +1434,6 @@ int __attribute__ ((noinline)) main(void)
 {
   int i;
 
-  usart_t usart;
-  uint8_t usart_rx_buf[32];
   
 
   /* call to the lpc lib setup procedure. This will set the IRC as clk src and main clk to 24 MHz */
@@ -1401,8 +1486,7 @@ int __attribute__ ((noinline)) main(void)
   SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
   
 
-  led_clear_light();
-  ws2812_spi_out(LED_LIGHT_WS2812B_OUT_PIN, led_light_ring, LED_CNT*3);	
+  led_update_light();
 
 
   for(;;)
@@ -1472,6 +1556,5 @@ int __attribute__ ((noinline)) main(void)
     //led_add_light_source(4, 0, 255, 255, 255);
 
   }
-  kelvin_to_rgb(1,2,NULL, NULL, NULL);
 }
 
