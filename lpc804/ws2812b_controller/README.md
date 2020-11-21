@@ -4,7 +4,7 @@
  * Output to 120x WS2812B LED 
  * Places 4 independed lights on the target LEDs
  * Each of the four lights can have any width, position and color
- * Color defined with HSV or Kelvon mode
+ * Color defined with HSV or Kelvin mode
  * Rotary Controller 0, HSV Mode Short Press: Cycle through H, S and V
  * Rotary Controller 0, Kelvin Mode Short Press: Switch between Kelvin and Brightness
  * Rotary Controller 0, Long Press: Switch between HSV and Kelvin mode
