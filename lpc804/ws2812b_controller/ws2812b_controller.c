@@ -85,7 +85,13 @@
 #define BP_CNT_DEBOUNCE_DELAY (50/SYS_TICK_PERIOD_IN_MS)
 
 /* Nmber of lights sources */
-#define LIGHT_SOURCES_CNT 3
+#define LIGHT_SOURCES_CNT 4
+
+/* Rotary Encoder LED Ring Brightness */
+#define ROT_ENC_LED_BRIGHTNESS 10
+
+/* Rotary Encoder LED Ring Brightness: Kelvin Selector has it own brightness */
+#define ROT_ENC_LED_KELVIN_BRIGHTNESS 14
 
 /*=======================================================================*/
 /* definitions */
@@ -1111,14 +1117,14 @@ void init_light_sources(void)
 void rel_draw_h_selector(rel_t *rel)
 {
   reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
-  led_draw_h_selector(rel->slot, ui->value, ui->max, 255, 40);
+  led_draw_h_selector(rel->slot, ui->value, ui->max, 255, ROT_ENC_LED_BRIGHTNESS);
   led_out(rel->slot);
 }
 
 void rel_draw_s_selector(rel_t *rel)
 {
   reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
-  led_draw_s_selector(rel->slot, ui->value, ui->max, UI_H, 40);
+  led_draw_s_selector(rel->slot, ui->value, ui->max, UI_H, ROT_ENC_LED_BRIGHTNESS);
   led_out(rel->slot);
 }
 
@@ -1132,21 +1138,21 @@ void rel_draw_v_selector(rel_t *rel)
 void rel_draw_position_selector(rel_t *rel)
 {
   reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
-  led_draw_position_selector(rel->slot, ui->value, ui->max, UI_W, 40);
+  led_draw_position_selector(rel->slot, ui->value, ui->max, UI_W, ROT_ENC_LED_BRIGHTNESS);
   led_out(rel->slot);
 }
 
 void rel_draw_width_selector(rel_t *rel)
 {
   reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
-  led_draw_width_selector(rel->slot, ui->value, ui->max, UI_P, 40);
+  led_draw_width_selector(rel->slot, ui->value, ui->max, UI_P, ROT_ENC_LED_BRIGHTNESS);
   led_out(rel->slot);
 }
 
 void rel_draw_kelvin_selector(rel_t *rel)
 {
   reui_t *ui = rot_enc_user_interface + rel->ui_list[rel->state];
-  led_draw_kelvin_selector(rel->slot, ui->value, ui->max, 16);
+  led_draw_kelvin_selector(rel->slot, ui->value, ui->max, ROT_ENC_LED_KELVIN_BRIGHTNESS);
   led_out(rel->slot);
 }
 
