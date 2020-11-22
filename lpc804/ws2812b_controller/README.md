@@ -12,5 +12,7 @@
  * Middle Button Short Press: Cycle through the four light sources
  * Middle Button Long Press: Store setup in Flash ROM (will be loaded during power up)
  
+![ws2812b_controller.jpg](ws2812b_controller.jpg)
  
 ![ws2812b_controller_schematic.png](ws2812b_controller_schematic.png)
+
