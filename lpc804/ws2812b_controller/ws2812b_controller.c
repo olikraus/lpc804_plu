@@ -47,12 +47,26 @@
 
 
 /*=======================================================================*/
-/* Configuration */
+/* Configuration (user defined) */
+
+/* Number of LEDs at the target output */
+#define LED_CNT 120
+
+/* Nmber of lights sources */
+#define LIGHT_SOURCES_CNT 4
+
+/* Rotary Encoder LED Ring Brightness */
+#define ROT_ENC_LED_BRIGHTNESS 10
+
+/* Rotary Encoder LED Ring Brightness: Kelvin Selector has it own brightness */
+#define ROT_ENC_LED_KELVIN_BRIGHTNESS 12
+
+
+/* System Configuration */
+
 #define SYS_TICK_PERIOD_IN_MS 20
 
-#define LED_CNT 60
 #define LED_LIGHT_WS2812B_OUT_PIN 14
-
 
 #define ROT_ENC_0_DIR_PIN 25
 #define ROT_ENC_0_CNT_PIN 26
@@ -70,9 +84,6 @@
 
 #define MODE_BUTTON_PIN 19
 
-
-
-
 /* number of LEDs in Ring 0 */
 #define LED_R0_CNT 12
 /* special LED in Ring 0 */
@@ -84,14 +95,6 @@
 /* debounce delay after button release, can be zero (which are actually SYS_TICK_PERIOD_IN_MS milliseconds */
 #define BP_CNT_DEBOUNCE_DELAY (50/SYS_TICK_PERIOD_IN_MS)
 
-/* Nmber of lights sources */
-#define LIGHT_SOURCES_CNT 4
-
-/* Rotary Encoder LED Ring Brightness */
-#define ROT_ENC_LED_BRIGHTNESS 10
-
-/* Rotary Encoder LED Ring Brightness: Kelvin Selector has it own brightness */
-#define ROT_ENC_LED_KELVIN_BRIGHTNESS 14
 
 /*=======================================================================*/
 /* definitions */
@@ -1020,10 +1023,10 @@ struct rel_struct
 reui_t rot_enc_user_interface[ARGS_PER_LIGHT] = 
 {
   { rel_draw_h_selector, /* wrap=*/ 1,  /*max=*/ LED_R0_CNT*7, /* value=*/ 0},
-  { rel_draw_s_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0},
+  { rel_draw_s_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*3, /* value=*/ 0},
   { rel_draw_v_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*2, /* value=*/ 0},
-  { rel_draw_position_selector, /* wrap=*/ 1,  /*max=*/ LED_R0_CNT*5, /* value=*/ 0},
-  { rel_draw_width_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*5, /* value=*/ 0},
+  { rel_draw_position_selector, /* wrap=*/ 1,  /*max=*/ LED_CNT, /* value=*/ 0},
+  { rel_draw_width_selector, /* wrap=*/ 0,  /*max=*/ LED_CNT, /* value=*/ 0},
   { rel_draw_kelvin_selector, /* wrap=*/ 0,  /*max=*/ LED_R0_CNT*7, /* value=*/ 0}
 };
 
