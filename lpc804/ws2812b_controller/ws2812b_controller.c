@@ -50,7 +50,7 @@
 /* Configuration (user defined) */
 
 /* Number of LEDs at the target output */
-#define LED_CNT 120
+#define LED_CNT (8*20)
 
 /* Nmber of lights sources */
 #define LIGHT_SOURCES_CNT 4
@@ -1285,7 +1285,7 @@ void rel_read_and_update_led(rel_t *rel)
       led_out(rel->slot);
       delay_micro_seconds(200000);
       
-      /* update light editor user inter fache */
+      /* update light editor user interface */
       light_sources[current_light_editor][6] = 1; /* Kelvin */
       rel_init(rel, rel->slot, 1);		/* change to kelvin */
       rel_set_state(rel, 0);  // this will assign the new state and also set the led ring for the rotary encoder
@@ -1441,9 +1441,7 @@ void __attribute__ ((interrupt)) SysTick_Handler(void)
 */
 int __attribute__ ((noinline)) main(void)
 {
-  int i;
-
-  
+  //int i;
 
   /* call to the lpc lib setup procedure. This will set the IRC as clk src and main clk to 24 MHz */
   SystemInit(); 
@@ -1481,41 +1479,45 @@ int __attribute__ ((noinline)) main(void)
   rot_enc_setup(rotary_encoder+0, 0, 0, 255, 0);
   rot_enc_setup(rotary_encoder+1, 0, 0, 255, 0);
   
-  rel_init(rot_enc_led+0, 0, 0);
-  rel_init(rot_enc_led+1, 1, 2);
 
-  init_light_sources();
+  init_light_sources();	// init all light sources and try to read from flash
+
+  if ( light_sources[current_light_editor][6] == 0 )
+  {
+    /* start in HSV mode */
+    rel_init(rot_enc_led+0, 0, 0);
+  }
+  else
+  {
+    /* start in Kelvin mode */
+    rel_init(rot_enc_led+0, 0, 1);
+  }
+  rel_init(rot_enc_led+1, 1, 2);
+  
   copy_light_source_to_editor();
 
   rel_set_state(rot_enc_led+0, 0);
   rel_set_state(rot_enc_led+1, 0);
 
-
   /* set systick and start systick interrupt (after all subsystems are ready */
   SysTick_Config(main_clk/1000UL*(unsigned long)SYS_TICK_PERIOD_IN_MS);
   
-
   led_update_light();
-
 
   for(;;)
   {
-    //GPIOSetBitValue(PORT0, 15, 1);
-    //delay_micro_seconds(1000000);
-    //GPIOSetBitValue(PORT0, 15, 0);
+    rel_read_and_update_led(rot_enc_led+0);
+    rel_read_and_update_led(rot_enc_led+1);
+    handle_mode_button();
+  }
+  
+  /*
+
+  for(;;)
+  {
     
     for( i = 0; i < 10; i++ )
     {
-      /*
-      led_clear(0);
-      //led_set_rgb(0, rotary_encoder[0].value, 40,0,0);
-      //led_add_rgb(0, rotary_encoder[1].value, 0,40,0);
-      
-      rotary_encoder[1].value &= 0x03f;
-      led_draw_h_selector(0, rotary_encoder[1].value, 0x040, 255, 50);
-      //led_draw_v_selector(0, rotary_encoder[1].value, 0x040, 0, 0);
-      led_out(0);
-      */
       
       rel_read_and_update_led(rot_enc_led+0);
       rel_read_and_update_led(rot_enc_led+1);
@@ -1523,9 +1525,7 @@ int __attribute__ ((noinline)) main(void)
       
       delay_micro_seconds(1000000/20);
     }
-    
-
-    
+      
     
     usart_write_string(&usart, " edit light source=");    
     usart_write_u16(&usart, current_light_editor);
@@ -1551,19 +1551,10 @@ int __attribute__ ((noinline)) main(void)
     usart_write_string(&usart, "/");    
     usart_write_string(&usart, u8toa(rotary_encoder[1].max ,3));    
 
-    /*
-    usart_write_string(&usart, " USAT(270, 9)=");    
-    usart_write_string(&usart, u8toa(__USAT(270, 9) ,3));    
-    usart_write_string(&usart, " USAT(270, 8)=");    
-    usart_write_string(&usart, u8toa(__USAT(270, 8) ,3));    
-    */
 
     usart_write_string(&usart, "\n"); 
-    
-
-    //led_update_light();
-    //led_add_light_source(4, 0, 255, 255, 255);
-
   }
+  */
+  
 }
 

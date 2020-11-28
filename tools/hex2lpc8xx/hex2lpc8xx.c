@@ -1231,7 +1231,7 @@ int lpc_erase_all(void)
   if ( do_not_clear_top_sector != 0 )
   {
     sector_cnt--;
-    msg("flash erase except topmost sector");
+    msg("flash erase except topmost sector (sectorsize=%d bytes)", lpc_part->sector_size);
   }
   else
   {
@@ -1682,7 +1682,7 @@ int is_arg(char ***argv, int c)
 /*================================================*/
 void help(void)
 {
-  printf("Version " VERSION);
+  printf("Version " VERSION "\n");
   printf("-h        Display this help\n");
   printf("-f <file> Load data from intel hex <file>\n");
   printf("-t        Do not erase topmost sector\n");
