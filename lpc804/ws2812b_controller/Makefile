@@ -116,7 +116,7 @@ plu_setup.c: 2_rot_enc.bex  rot_enc_0.kiss rot_enc_1.kiss
 .PHONY: upload
 upload: $(DISNAME) $(HEXNAME) $(ELFNAME)
 	$(SIZE) $(ELFNAME)
-	../../tools/hex2lpc8xx/hex2lpc8xx -x -s 3 -v -f $(HEXNAME)
+	../../tools/hex2lpc8xx/hex2lpc8xx -t -x -s 3 -v -f $(HEXNAME)
 
 .PHONY: clean
 clean:
