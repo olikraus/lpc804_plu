@@ -77,7 +77,7 @@ ws2812_spi_t ws2812_spi;
 
 /*
   This SPI handler will do an online conversion of the bit values to the WS2812B format 
-  4 bits of date are converted into two bytes (16 bit) of data
+  4 bits of data are converted into two bytes (16 bit) of data
   This procedure is time critical: 6 Clock-Cycle per SPI bit 6*16 = 96 Clock Cycle
   ==> Upper Limit for this procedure are 96 clock cycles
 */

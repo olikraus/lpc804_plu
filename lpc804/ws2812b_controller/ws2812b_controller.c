@@ -720,6 +720,17 @@ void led_draw_kelvin_selector(int slot, unsigned pos, unsigned max, uint8_t v)
   x: position on the ring: 0..255
   w: width of the trapezoid, 0..255
   r: length of left and right ramp, 0..255 ( but usually <30 )
+
+  for w=10, r = 20
+  x=0 --> 255
+  x=10 --> 255
+  x=245 --> 255
+  x=255 --> 255
+     (upper part of the trapezoid is between 255-w .. 255 and 0 .. w)
+  x=20 --> around 128
+  x=31 --> 0
+    The rising ramp is from 255-w-r to 255-r 
+    The falling ramp is from w to w+r
 */
 uint8_t trapezoid_fn(uint8_t x, uint8_t w, uint8_t r)
 {
