@@ -417,7 +417,7 @@ void usart0_init(usart_t *usart, uint32_t brgval, uint8_t tx, uint8_t rx, uint8_
   
   usart_init( LPC_USART0, brgval);
   
-  NVIC_EnableIRQ(USART1_IRQn);
+  NVIC_EnableIRQ(UART1_IRQn);
 }
 
 void __attribute__ ((interrupt)) UART0_Handler(void)
